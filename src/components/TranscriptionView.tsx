@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Note } from '@/types/Note';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Copy, Edit, Save, Play, Pause } from "lucide-react";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface TranscriptionViewProps {
   note: Note;

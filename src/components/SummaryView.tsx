@@ -4,7 +4,7 @@ import { Note } from '@/types/Note';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Copy, Download } from "lucide-react";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { marked } from 'marked';
 
 interface SummaryViewProps {

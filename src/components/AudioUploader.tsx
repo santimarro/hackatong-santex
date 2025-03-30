@@ -1,9 +1,8 @@
-
 import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Upload, Loader2, File, X } from "lucide-react";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface AudioUploaderProps {
   isOpen: boolean;
@@ -26,7 +25,6 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
   };
 
   const validateAndSetFile = (file: File) => {
-    // Check if file is an audio file
     if (!file.type.startsWith('audio/')) {
       toast({
         title: "Invalid file",
@@ -36,7 +34,6 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
       return;
     }
     
-    // Check file size (limit to 100MB)
     if (file.size > 100 * 1024 * 1024) {
       toast({
         title: "File too large",
@@ -78,10 +75,8 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
     
     setIsUploading(true);
     
-    // Send the file to the parent component
     onFileUpload(selectedFile);
     
-    // Close the dialog and reset state
     onClose();
     setIsUploading(false);
     setSelectedFile(null);
