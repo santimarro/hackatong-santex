@@ -32,7 +32,7 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note }) => {
         if (url) URL.revokeObjectURL(url);
       };
     } else {
-      console.warn("Invalid or missing audio blob for note:", note.id);
+      console.warn("Audio blob inválido o faltante para la nota:", note.id);
     }
   }, [note]);
 

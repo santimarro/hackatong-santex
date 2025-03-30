@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -24,20 +23,18 @@ const Notes = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check if API keys exist
   useEffect(() => {
     const deepgramApiKey = localStorage.getItem('deepgramApiKey');
     const geminiApiKey = localStorage.getItem('geminiApiKey');
 
     if (!deepgramApiKey || !geminiApiKey) {
       toast({
-        title: "Missing API Keys",
-        description: "Please set up your API keys first",
+        title: "Faltan claves API",
+        description: "Por favor configura tus claves API primero",
         variant: "destructive",
       });
       navigate('/setup');
     } else {
-      // Load saved notes from localStorage
       const savedNotes = localStorage.getItem('audioNotes');
       if (savedNotes) {
         setNotes(JSON.parse(savedNotes));
@@ -45,7 +42,6 @@ const Notes = () => {
     }
   }, [navigate, toast]);
 
-  // Save notes when they change
   useEffect(() => {
     if (notes.length > 0) {
       localStorage.setItem('audioNotes', JSON.stringify(notes));
@@ -56,16 +52,13 @@ const Notes = () => {
     setIsProcessing(true);
     
     try {
-      // Transcribe audio with Deepgram
       const transcript = await transcribeAudio(audioBlob);
       
-      // Summarize with Gemini
       const summary = await summarizeText(transcript);
       
-      // Create new note
       const newNote: Note = {
         id: Date.now().toString(),
-        title: `Note ${notes.length + 1}`,
+        title: `Nota ${notes.length + 1}`,
         date: new Date().toISOString(),
         audioBlob: audioBlob,
         transcription: transcript,
@@ -76,14 +69,14 @@ const Notes = () => {
       setSelectedNote(newNote);
       
       toast({
-        title: "Success",
-        description: "Audio processed successfully",
+        title: "Éxito",
+        description: "Audio procesado correctamente",
       });
     } catch (error) {
-      console.error("Error processing audio:", error);
+      console.error("Error procesando el audio:", error);
       toast({
         title: "Error",
-        description: "Failed to process audio. Please try again.",
+        description: "Error al procesar el audio. Intenta de nuevo.",
         variant: "destructive",
       });
     } finally {
@@ -95,19 +88,15 @@ const Notes = () => {
     setIsProcessing(true);
     
     try {
-      // Convert File to Blob
       const audioBlob = new Blob([file], { type: file.type });
       
-      // Transcribe audio with Deepgram
       const transcript = await transcribeAudio(audioBlob);
       
-      // Summarize with Gemini
       const summary = await summarizeText(transcript);
       
-      // Create new note
       const newNote: Note = {
         id: Date.now().toString(),
-        title: file.name.replace(/\.[^/.]+$/, "") || `Note ${notes.length + 1}`,
+        title: file.name.replace(/\.[^/.]+$/, "") || `Nota ${notes.length + 1}`,
         date: new Date().toISOString(),
         audioBlob: audioBlob,
         transcription: transcript,
@@ -118,14 +107,14 @@ const Notes = () => {
       setSelectedNote(newNote);
       
       toast({
-        title: "Success",
-        description: "Audio processed successfully",
+        title: "Éxito",
+        description: "Audio procesado correctamente",
       });
     } catch (error) {
-      console.error("Error processing audio:", error);
+      console.error("Error procesando el audio:", error);
       toast({
         title: "Error",
-        description: "Failed to process audio. Please try again.",
+        description: "Error al procesar el audio. Intenta de nuevo.",
         variant: "destructive",
       });
     } finally {
@@ -148,10 +137,8 @@ const Notes = () => {
       throw new Error("Deepgram API key not found");
     }
 
-    // Convert Blob to ArrayBuffer
     const buffer = await audioBlob.arrayBuffer();
     
-    // Make a direct HTTP request to Deepgram API
     const response = await fetch("https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&detect_language=true", {
       method: "POST",
       headers: {
@@ -168,7 +155,6 @@ const Notes = () => {
     
     const result = await response.json();
     
-    // Extract the transcript text
     return result.results?.channels[0]?.alternatives[0]?.transcript || "";
   };
 
@@ -178,13 +164,11 @@ const Notes = () => {
       throw new Error("Gemini API key not found");
     }
 
-    // Get the system prompt from localStorage or use a default if not found
     const systemPrompt = localStorage.getItem('systemPrompt') || 
       `Create a study summary of the following Spanish text. Include key points, main topics, and important concepts to review.
       Format the output with clear sections, bullet points, and emphasize important terms.`;
 
     try {
-      // Use Google GenAI SDK
       const response = await fetch("https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent", {
         method: "POST",
         headers: {
@@ -232,7 +216,7 @@ const Notes = () => {
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate('/setup')}>
             <Settings className="h-4 w-4 mr-1" />
-            Settings
+            Ajustes
           </Button>
         </div>
       </header>
@@ -257,7 +241,7 @@ const Notes = () => {
               disabled={isRecording || isUploading || isProcessing}
             >
               <Mic className="h-4 w-4 mr-1" />
-              Record
+              Grabar
             </Button>
             <Button 
               variant="outline" 
@@ -267,7 +251,7 @@ const Notes = () => {
               disabled={isRecording || isUploading || isProcessing}
             >
               <Upload className="h-4 w-4 mr-1" />
-              Upload
+              Subir
             </Button>
           </div>
         </div>
@@ -277,8 +261,8 @@ const Notes = () => {
             <div className="flex flex-1 items-center justify-center">
               <div className="text-center">
                 <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-                <p className="text-gray-500">Processing your audio...</p>
-                <p className="text-xs text-gray-400 mt-2">This may take a minute</p>
+                <p className="text-gray-500">Procesando tu audio...</p>
+                <p className="text-xs text-gray-400 mt-2">Esto puede tardar un minuto</p>
               </div>
             </div>
           ) : selectedNote ? (

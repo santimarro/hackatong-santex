@@ -20,8 +20,8 @@ const Setup = () => {
   const { toast } = useToast();
 
   // Default system prompt
-  const defaultSystemPrompt = `Create a study summary of the following Spanish text. Include key points, main topics, and important concepts to review.
-Format the output with clear sections, bullet points, and emphasize important terms.`;
+  const defaultSystemPrompt = `Crea un resumen de estudio del siguiente texto en español. Incluye puntos clave, temas principales y conceptos importantes para repasar.
+Formatea la salida con secciones claras, viñetas y enfatiza términos importantes.`;
 
   // Check if API keys and prompt are already stored
   useEffect(() => {
@@ -49,7 +49,7 @@ Format the output with clear sections, bullet points, and emphasize important te
     if (!deepgramApiKey.trim() || !geminiApiKey.trim()) {
       toast({
         title: "Error",
-        description: "Please enter both API keys",
+        description: "Por favor ingresa ambas claves API",
         variant: "destructive",
       });
       setIsValidating(false);
@@ -69,8 +69,8 @@ Format the output with clear sections, bullet points, and emphasize important te
     }
 
     toast({
-      title: "Success",
-      description: "Settings saved successfully",
+      title: "Éxito",
+      description: "Configuración guardada correctamente",
     });
 
     setIsValidating(false);
@@ -80,8 +80,8 @@ Format the output with clear sections, bullet points, and emphasize important te
   const handleResetPrompt = () => {
     setSystemPrompt(defaultSystemPrompt);
     toast({
-      title: "Reset",
-      description: "System prompt reset to default",
+      title: "Reiniciado",
+      description: "Instrucciones restablecidas a valores predeterminados",
     });
   };
 
@@ -91,45 +91,45 @@ Format the output with clear sections, bullet points, and emphasize important te
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Audio Note Magic</CardTitle>
           <CardDescription className="text-center">
-            Configure your application settings
+            Configura tu aplicación
           </CardDescription>
         </CardHeader>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="apiKeys">API Keys</TabsTrigger>
-            <TabsTrigger value="aiSettings">AI Settings</TabsTrigger>
+            <TabsTrigger value="apiKeys">Claves API</TabsTrigger>
+            <TabsTrigger value="aiSettings">Ajustes IA</TabsTrigger>
           </TabsList>
           
           <TabsContent value="apiKeys" className="space-y-4">
             <CardContent>
               <form className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="deepgramApiKey">Deepgram API Key</Label>
+                  <Label htmlFor="deepgramApiKey">Clave API de Deepgram</Label>
                   <Input
                     id="deepgramApiKey"
                     type="password"
-                    placeholder="Enter your Deepgram API key"
+                    placeholder="Ingresa tu clave API de Deepgram"
                     value={deepgramApiKey}
                     onChange={(e) => setDeepgramApiKey(e.target.value)}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Get a key from <a href="https://console.deepgram.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Deepgram Console</a>
+                    Obtén una clave en <a href="https://console.deepgram.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Deepgram Console</a>
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="geminiApiKey">Gemini API Key</Label>
+                  <Label htmlFor="geminiApiKey">Clave API de Gemini</Label>
                   <Input
                     id="geminiApiKey"
                     type="password"
-                    placeholder="Enter your Gemini API key"
+                    placeholder="Ingresa tu clave API de Gemini"
                     value={geminiApiKey}
                     onChange={(e) => setGeminiApiKey(e.target.value)}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Get a key from <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>
+                    Obtén una clave en <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>
                   </p>
                 </div>
               </form>
@@ -141,25 +141,25 @@ Format the output with clear sections, bullet points, and emphasize important te
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <Label htmlFor="systemPrompt">Gemini System Prompt</Label>
+                    <Label htmlFor="systemPrompt">Instrucciones para Gemini</Label>
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       onClick={handleResetPrompt}
                       className="text-xs h-7"
                     >
-                      Reset to Default
+                      Restablecer
                     </Button>
                   </div>
                   <Textarea
                     id="systemPrompt"
-                    placeholder="Enter instructions for Gemini AI"
+                    placeholder="Ingresa instrucciones para la IA Gemini"
                     value={systemPrompt}
                     onChange={(e) => setSystemPrompt(e.target.value)}
                     className="min-h-[150px]"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Customize how Gemini summarizes your transcribed text
+                    Personaliza cómo Gemini resume tu texto transcrito
                   </p>
                 </div>
               </div>
@@ -168,7 +168,7 @@ Format the output with clear sections, bullet points, and emphasize important te
         </Tabs>
         <CardFooter>
           <Button onClick={handleSubmit} disabled={isValidating} className="w-full">
-            {isValidating ? "Validating..." : "Continue to App"}
+            {isValidating ? "Validando..." : "Continuar a la aplicación"}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </CardFooter>
@@ -177,13 +177,13 @@ Format the output with clear sections, bullet points, and emphasize important te
             <div className="bg-primary-light p-3 rounded-full">
               <Mic className="h-6 w-6 text-primary" />
             </div>
-            <span className="text-xs mt-2">Record Audio</span>
+            <span className="text-xs mt-2">Grabar Audio</span>
           </div>
           <div className="flex flex-col items-center">
             <div className="bg-primary-light p-3 rounded-full">
               <Upload className="h-6 w-6 text-primary" />
             </div>
-            <span className="text-xs mt-2">Upload Audio</span>
+            <span className="text-xs mt-2">Subir Audio</span>
           </div>
         </div>
       </Card>

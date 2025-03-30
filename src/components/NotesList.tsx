@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Note } from '@/types/Note';
 import { cn } from '@/lib/utils';
 
@@ -33,7 +34,7 @@ const NotesList: React.FC<NotesListProps> = ({ notes, selectedNote, onSelectNote
         >
           <h3 className="font-medium truncate">{note.title}</h3>
           <p className="text-xs text-gray-500 mt-1">
-            {formatDistanceToNow(new Date(note.date), { addSuffix: true })}
+            {formatDistanceToNow(new Date(note.date), { addSuffix: true, locale: es })}
           </p>
           <p className="text-xs text-gray-500 mt-1 truncate">
             {note.transcription.substring(0, 60)}...
