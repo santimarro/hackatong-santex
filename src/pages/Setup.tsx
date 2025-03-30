@@ -21,7 +21,8 @@ const Setup = () => {
 
   // Default system prompt
   const defaultSystemPrompt = `Crea un resumen de estudio del siguiente texto en español. Incluye puntos clave, temas principales y conceptos importantes para repasar.
-Formatea la salida con secciones claras, viñetas y enfatiza términos importantes.`;
+Formatea la salida con secciones claras, viñetas y enfatiza términos importantes.
+Asegúrate de escribir TODO el contenido en español.`;
 
   // Check if API keys and prompt are already stored
   useEffect(() => {
