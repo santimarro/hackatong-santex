@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Note } from '@/types/Note';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,8 +16,25 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note }) => {
   const [title, setTitle] = useState(note.title);
   const [transcription, setTranscription] = useState(note.transcription);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = React.useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
+
+  // Create object URL when component mounts or when note changes
+  useEffect(() => {
+    // Check if audioBlob exists and is valid before creating an object URL
+    if (note.audioBlob && note.audioBlob instanceof Blob && note.audioBlob.size > 0) {
+      const url = URL.createObjectURL(note.audioBlob);
+      setAudioUrl(url);
+      
+      // Clean up the URL when component unmounts
+      return () => {
+        if (url) URL.revokeObjectURL(url);
+      };
+    } else {
+      console.warn("Invalid or missing audio blob for note:", note.id);
+    }
+  }, [note]);
 
   const handleSave = () => {
     // In a real app, you would save this to the database
@@ -37,7 +55,7 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note }) => {
   };
 
   const togglePlayPause = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !audioUrl) return;
     
     if (isPlaying) {
       audioRef.current.pause();
@@ -82,6 +100,7 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note }) => {
             variant="outline" 
             size="sm" 
             onClick={togglePlayPause}
+            disabled={!audioUrl}
           >
             {isPlaying ? (
               <>
@@ -115,12 +134,14 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note }) => {
         </CardContent>
       </Card>
       
-      <audio 
-        ref={audioRef} 
-        src={URL.createObjectURL(note.audioBlob)} 
-        onEnded={handleAudioEnded}
-        className="hidden"
-      />
+      {audioUrl && (
+        <audio 
+          ref={audioRef} 
+          src={audioUrl} 
+          onEnded={handleAudioEnded}
+          className="hidden"
+        />
+      )}
     </div>
   );
 };
