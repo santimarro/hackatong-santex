@@ -178,6 +178,11 @@ const Notes = () => {
       throw new Error("Gemini API key not found");
     }
 
+    // Get the system prompt from localStorage or use a default if not found
+    const systemPrompt = localStorage.getItem('systemPrompt') || 
+      `Create a study summary of the following Spanish text. Include key points, main topics, and important concepts to review.
+      Format the output with clear sections, bullet points, and emphasize important terms.`;
+
     try {
       // Use Google GenAI SDK
       const response = await fetch("https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent", {
@@ -191,8 +196,7 @@ const Notes = () => {
             {
               parts: [
                 {
-                  text: `Create a study summary of the following Spanish text. Include key points, main topics, and important concepts to review.
-                  Format the output with clear sections, bullet points, and emphasize important terms.
+                  text: `${systemPrompt}
                   
                   Text to summarize:
                   ${text}`
