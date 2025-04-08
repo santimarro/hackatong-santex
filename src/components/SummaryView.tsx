@@ -15,7 +15,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ note }) => {
   const { toast } = useToast();
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(note.summary);
+    navigator.clipboard.writeText(note.patientSummary);
     toast({
       title: "Copiado",
       description: "Resumen copiado al portapapeles",
@@ -24,7 +24,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ note }) => {
 
   const handleDownload = () => {
     const element = document.createElement('a');
-    const file = new Blob([note.summary], { type: 'text/plain' });
+    const file = new Blob([note.patientSummary], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
     element.download = `${note.title}-resumen.txt`;
     document.body.appendChild(element);
@@ -38,7 +38,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ note }) => {
   };
 
   // Render the summary with markdown formatting
-  const renderedSummary = marked(note.summary);
+  const renderedSummary = marked(note.patientSummary);
 
   return (
     <div className="space-y-4">
