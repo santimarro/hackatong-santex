@@ -1,7 +1,8 @@
+
 import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2, File, X } from "lucide-react";
+import { Upload, Loader2, FileAudio, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AudioUploaderProps {
@@ -27,8 +28,8 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
   const validateAndSetFile = (file: File) => {
     if (!file.type.startsWith('audio/')) {
       toast({
-        title: "Invalid file",
-        description: "Please upload an audio file",
+        title: "Archivo inválido",
+        description: "Por favor sube un archivo de audio",
         variant: "destructive",
       });
       return;
@@ -36,8 +37,8 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
     
     if (file.size > 100 * 1024 * 1024) {
       toast({
-        title: "File too large",
-        description: "Please upload a file smaller than 100MB",
+        title: "Archivo demasiado grande",
+        description: "Por favor sube un archivo menor a 100MB",
         variant: "destructive",
       });
       return;
@@ -99,13 +100,13 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Subir Audio</DialogTitle>
+          <DialogTitle>Subir grabación de consulta médica</DialogTitle>
         </DialogHeader>
         
         {!selectedFile ? (
           <div 
             className={`border-2 border-dashed rounded-lg p-8 text-center ${
-              isDragging ? 'border-primary bg-primary-light/50' : 'border-gray-300'
+              isDragging ? 'border-primary bg-primary-light' : 'border-gray-300'
             }`}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
@@ -131,12 +132,15 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
             <p className="text-xs text-gray-500 mt-4">
               Formatos permitidos: MP3, WAV, M4A, etc.
             </p>
+            <p className="text-xs text-gray-500 mt-2">
+              Tamaño máximo: 100MB
+            </p>
           </div>
         ) : (
           <div className="border rounded-lg p-4">
             <div className="flex items-center">
               <div className="mr-4 p-2 bg-primary-light rounded">
-                <File className="h-8 w-8 text-primary" />
+                <FileAudio className="h-8 w-8 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{selectedFile.name}</p>
@@ -154,6 +158,15 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
           </div>
         )}
         
+        <div className="text-xs text-gray-500 p-3 bg-primary-light/50 rounded-lg">
+          <p className="font-medium text-primary mb-1">Consejos para grabaciones de calidad:</p>
+          <ul className="list-disc list-inside space-y-1">
+            <li>Asegúrate de que la grabación tenga buen audio</li>
+            <li>Idealmente, la grabación debe incluir toda la consulta</li>
+            <li>Evita archivos con mucho ruido de fondo</li>
+          </ul>
+        </div>
+        
         <DialogFooter className="sm:justify-between">
           <Button 
             variant="ghost" 
@@ -167,13 +180,14 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
             <Button 
               onClick={handleSubmit}
               disabled={isUploading}
+              className="bg-secondary hover:bg-secondary/90"
             >
               {isUploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Procesando...
                 </>
-              ) : "Procesar audio"}
+              ) : "Procesar consulta"}
             </Button>
           )}
         </DialogFooter>

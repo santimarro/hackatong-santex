@@ -1,7 +1,8 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2 } from "lucide-react";
+import { Stethoscope, Square, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AudioRecorderProps {
@@ -77,7 +78,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
       console.error("Error accessing microphone:", error);
       toast({
         title: "Error",
-        description: "Could not access microphone. Please check your permissions.",
+        description: "No se pudo acceder al micrófono. Verifica los permisos.",
         variant: "destructive",
       });
     }
@@ -119,7 +120,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Grabar Audio</DialogTitle>
+          <DialogTitle>Grabar consulta médica</DialogTitle>
         </DialogHeader>
         
         <div className="flex flex-col items-center justify-center py-6">
@@ -128,14 +129,14 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
           <div className="mb-6">
             {isRecording ? (
               <div className="relative">
-                <div className="absolute -inset-1 rounded-full bg-red-500/20 animate-pulse"></div>
+                <div className="absolute -inset-1 rounded-full bg-destructive/20 animate-pulse"></div>
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="h-16 w-16 rounded-full border-red-500 border-2" 
+                  className="h-16 w-16 rounded-full border-destructive border-2" 
                   onClick={stopRecording}
                 >
-                  <Square className="h-6 w-6 text-red-500" />
+                  <Square className="h-6 w-6 text-destructive" />
                 </Button>
               </div>
             ) : recordedBlob ? (
@@ -149,16 +150,23 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
                 className="h-16 w-16 rounded-full border-primary border-2" 
                 onClick={startRecording}
               >
-                <Mic className="h-6 w-6 text-primary" />
+                <Stethoscope className="h-6 w-6 text-primary" />
               </Button>
             )}
           </div>
           
           <p className="text-sm text-gray-500">
-            {isRecording ? "Grabando audio..." : 
+            {isRecording ? "Grabando consulta..." : 
               recordedBlob ? "Reproducir para verificar" : 
-              "Haz clic para empezar a grabar"}
+              "Haz clic para comenzar a grabar la consulta"}
           </p>
+          
+          {!isRecording && !recordedBlob && (
+            <div className="mt-4 max-w-xs text-center text-xs text-gray-500">
+              <p>Coloca tu dispositivo cerca del médico para capturar claramente la conversación.</p>
+              <p className="mt-2">Recuerda obtener permiso antes de grabar la consulta.</p>
+            </div>
+          )}
         </div>
         
         <DialogFooter className="sm:justify-between">
@@ -174,13 +182,14 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
             <Button 
               onClick={handleSubmit}
               disabled={isUploading}
+              className="bg-secondary hover:bg-secondary/90"
             >
               {isUploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Procesando...
                 </>
-              ) : "Usar grabación"}
+              ) : "Procesar consulta"}
             </Button>
           )}
         </DialogFooter>
