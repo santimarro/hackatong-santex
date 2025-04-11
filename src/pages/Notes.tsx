@@ -1,18 +1,18 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Stethoscope, Upload, Settings, Plus, Loader2, Share, Menu, X } from "lucide-react";
+import { Stethoscope, Upload, Settings, Plus, Loader2, Share, Menu, X, ArrowLeft, Calendar, Clock, MapPin } from "lucide-react";
 import NotesList from '@/components/NotesList';
 import AudioRecorder from '@/components/AudioRecorder';
 import AudioUploader from '@/components/AudioUploader';
 import TranscriptionView from '@/components/TranscriptionView';
 import PatientSummaryView from '@/components/PatientSummaryView';
 import MedicalSummaryView from '@/components/MedicalSummaryView';
+import BottomNavigation from '@/components/BottomNavigation';
 import { Note } from '@/types/Note';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -26,7 +26,33 @@ const Notes = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  
+  // Parse the appointment ID from the query string if coming from appointment detail
+  const queryParams = new URLSearchParams(location.search);
+  const appointmentId = queryParams.get('appointment');
+  
+  // If redirected from consultation/new with preserveSearch state, include the original search params
+  useEffect(() => {
+    if (location.state && location.state.preserveSearch && !location.search) {
+      const currentPath = location.pathname;
+      const searchParams = new URLSearchParams(window.location.search);
+      navigate(`${currentPath}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`, { replace: true });
+    }
+  }, [location, navigate]);
+  
+  // Mock appointment data when coming from appointment detail
+  const appointmentData = appointmentId ? {
+    id: appointmentId,
+    doctorName: "Fernando Quinteros",
+    specialty: "Traumatologia",
+    institution: "Hospital Italiano",
+    date: new Date(),
+    time: "11:00 AM",
+    location: "Consultorio 305, Piso 3",
+    notes: "Primera consulta por dolor en la rodilla derecha."
+  } : null;
 
   useEffect(() => {
     if (isMobile) {
@@ -73,9 +99,13 @@ const Notes = () => {
       const patientSummary = await generatePatientSummary(transcript);
       const medicalSummary = await generateMedicalSummary(transcript);
       
+      const title = appointmentData 
+        ? `Consulta ${appointmentData.doctorName} - ${appointmentData.specialty}`
+        : `Consulta ${notes.length + 1}`;
+        
       const newNote: Note = {
         id: Date.now().toString(),
-        title: `Consulta ${notes.length + 1}`,
+        title: title,
         date: new Date().toISOString(),
         audioBlob: audioBlob,
         transcription: transcript,
@@ -113,9 +143,13 @@ const Notes = () => {
       const patientSummary = await generatePatientSummary(transcript);
       const medicalSummary = await generateMedicalSummary(transcript);
       
+      const title = appointmentData 
+        ? `Consulta ${appointmentData.doctorName} - ${appointmentData.specialty}`
+        : file.name.replace(/\.[^/.]+$/, "") || `Consulta ${notes.length + 1}`;
+        
       const newNote: Note = {
         id: Date.now().toString(),
-        title: file.name.replace(/\.[^/.]+$/, "") || `Consulta ${notes.length + 1}`,
+        title: title,
         date: new Date().toISOString(),
         audioBlob: audioBlob,
         transcription: transcript,
@@ -310,6 +344,130 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  // Render based on context
+  if (appointmentData && !selectedNote && !isProcessing) {
+    // Render the consultation view when coming from appointment
+    return (
+      <div className="flex flex-col h-screen bg-white">
+        {/* Header */}
+        <header className="flex items-center px-6 py-4 border-b border-gray-200">
+          <button 
+            className="mr-2" 
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-xl font-bold">Consulta - Datos Iniciales</h1>
+        </header>
+        
+        {/* Main content */}
+        <div className="flex-1 overflow-auto py-6 px-6">
+          <div className="space-y-6">
+            {/* Doctor info */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Médico</label>
+                <input 
+                  type="text" 
+                  className="w-full p-2 border border-gray-300 rounded-md" 
+                  value={appointmentData.doctorName} 
+                  readOnly 
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Especialidad</label>
+                <input 
+                  type="text" 
+                  className="w-full p-2 border border-gray-300 rounded-md" 
+                  value={appointmentData.specialty} 
+                  readOnly 
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Institución</label>
+                <input 
+                  type="text" 
+                  className="w-full p-2 border border-gray-300 rounded-md" 
+                  value={appointmentData.institution} 
+                  readOnly 
+                />
+              </div>
+            </div>
+            
+            {/* Appointment details */}
+            <Card className="bg-gray-50">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center">
+                  <Calendar className="h-5 w-5 mr-2 text-gray-500" />
+                  <span>{appointmentData.date.toLocaleDateString()}</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <Clock className="h-5 w-5 mr-2 text-gray-500" />
+                  <span>{appointmentData.time}</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <MapPin className="h-5 w-5 mr-2 text-gray-500" />
+                  <span>{appointmentData.location}</span>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Notes */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Notas</label>
+              <textarea 
+                className="w-full p-2 border border-gray-300 rounded-md min-h-[100px]" 
+                value={appointmentData.notes}
+                readOnly
+              />
+            </div>
+          </div>
+        </div>
+        
+        {/* Actions */}
+        <div className="p-6 border-t border-gray-200 pb-24">
+          <div className="flex gap-4">
+            <Button 
+              className="flex-1"
+              onClick={() => setIsRecording(true)}
+            >
+              <Stethoscope className="h-4 w-4 mr-2" />
+              Grabar Consulta
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="flex-1"
+              onClick={() => setIsUploading(true)}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Subir Audio
+            </Button>
+          </div>
+        </div>
+        
+        <AudioRecorder 
+          isOpen={isRecording} 
+          onClose={() => setIsRecording(false)} 
+          onRecordingComplete={handleRecordComplete} 
+        />
+        
+        <AudioUploader 
+          isOpen={isUploading} 
+          onClose={() => setIsUploading(false)} 
+          onFileUpload={handleFileUpload} 
+        />
+        
+        <BottomNavigation />
+      </div>
+    );
+  }
+
+  // Regular Notes page rendering
   return (
     <div className="flex flex-col h-screen bg-white">
       <header className="border-b border-gray-200 bg-white py-4 px-6 flex justify-between items-center">
@@ -371,7 +529,7 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
 
         <div className="flex-1 flex flex-col overflow-hidden">
           {isProcessing ? (
-            <div className="flex flex-1 items-center justify-center">
+            <div className="flex flex-1 items-center justify-center pb-24">
               <div className="text-center">
                 <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
                 <p className="text-gray-500">Procesando tu consulta médica...</p>
@@ -387,18 +545,18 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
                   <TabsTrigger value="medicalSummary">Resumen Médico</TabsTrigger>
                 </TabsList>
               </div>
-              <TabsContent value="transcription" className="flex-1 overflow-auto p-6">
+              <TabsContent value="transcription" className="flex-1 overflow-auto p-6 pb-24">
                 <TranscriptionView note={selectedNote} onUpdateNote={handleUpdateNote} />
               </TabsContent>
-              <TabsContent value="patientSummary" className="flex-1 overflow-auto p-6">
+              <TabsContent value="patientSummary" className="flex-1 overflow-auto p-6 pb-24">
                 <PatientSummaryView note={selectedNote} />
               </TabsContent>
-              <TabsContent value="medicalSummary" className="flex-1 overflow-auto p-6">
+              <TabsContent value="medicalSummary" className="flex-1 overflow-auto p-6 pb-24">
                 <MedicalSummaryView note={selectedNote} />
               </TabsContent>
             </Tabs>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center pb-24">
               <Card className="w-96 bg-primary-light border-none">
                 <CardContent className="pt-6">
                   <div className="text-center space-y-4">
@@ -442,6 +600,8 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
         onClose={() => setIsUploading(false)} 
         onFileUpload={handleFileUpload} 
       />
+
+      <BottomNavigation />
     </div>
   );
 };

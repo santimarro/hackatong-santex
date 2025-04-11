@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,57 +18,115 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const timerRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
 
+  // Reset recording when dialog closes
   useEffect(() => {
     if (!isOpen) {
-      stopRecording();
-      setRecordingTime(0);
+      cleanupRecording();
       setRecordedBlob(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  // Cleanup on unmount
   useEffect(() => {
-    return () => {
+    return cleanupRecording;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Function to clean up recording resources
+  const cleanupRecording = () => {
+    // Stop recording if active
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (err) {
+        console.error("Error stopping media recorder:", err);
+      }
+    }
+    
+    // Clear the timer interval
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    // Stop and clean up media tracks
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
+    setIsRecording(false);
+    setRecordingTime(0);
+  };
+
+  const startRecording = async () => {
+    // Clean up any existing recording first
+    cleanupRecording();
+    
+    // Reset state
+    chunksRef.current = [];
+    setRecordingTime(0);
+    setRecordedBlob(null);
+    
+    try {
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      
+      // Set up media recorder with proper options
+      const options = { mimeType: 'audio/webm' };
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+      
+      // This will be called whenever there is data available
+      mediaRecorder.ondataavailable = (event) => {
+        console.log("Data available", event.data.size);
+        if (event.data && event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+      
+      // This will be called when recording stops
+      mediaRecorder.onstop = () => {
+        console.log("MediaRecorder stopped", chunksRef.current.length);
+        // Create audio blob from recorded chunks
+        if (chunksRef.current.length > 0) {
+          const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+          setRecordedBlob(audioBlob);
+          console.log("Blob created", audioBlob.size);
+        } else {
+          console.warn("No audio data collected");
+        }
+        
+        // Stop all audio tracks
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+        }
+        
+        // Clear the timer
+        if (timerRef.current) {
+          window.clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        
+        // Update state
+        setIsRecording(false);
+      };
+      
+      // Request data every second
+      mediaRecorder.start(1000);
+      console.log("MediaRecorder started", mediaRecorder.state);
+      setIsRecording(true);
+      
+      // Set up timer to update UI
       if (timerRef.current) {
         window.clearInterval(timerRef.current);
       }
-      if (mediaRecorderRef.current && isRecording) {
-        mediaRecorderRef.current.stop();
-      }
-    };
-  }, [isRecording]);
-
-  const startRecording = async () => {
-    chunksRef.current = [];
-    
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
-      };
-      
-      mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/m4a' });
-        setRecordedBlob(audioBlob);
-        
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
-        
-        if (timerRef.current) {
-          window.clearInterval(timerRef.current);
-        }
-      };
-      
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-      
-      // Start timer
       timerRef.current = window.setInterval(() => {
         setRecordingTime(prevTime => prevTime + 1);
       }, 1000);
@@ -85,12 +142,25 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
+    console.log("Stopping recording");
+    if (mediaRecorderRef.current) {
+      if (mediaRecorderRef.current.state === 'recording') {
+        console.log("MediaRecorder is recording, stopping now");
+        try {
+          // Request data one final time before stopping
+          mediaRecorderRef.current.requestData();
+          // Then stop the recorder
+          mediaRecorderRef.current.stop();
+        } catch (err) {
+          console.error("Error stopping recorder:", err);
+          // Fallback cleanup in case of error
+          cleanupRecording();
+        }
+      } else {
+        console.log("MediaRecorder is not recording", mediaRecorderRef.current.state);
       }
+    } else {
+      console.log("No MediaRecorder found");
     }
   };
 
@@ -99,15 +169,25 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
     
     setIsUploading(true);
     
-    // Send the blob to the parent component
-    onRecordingComplete(recordedBlob);
-    
-    // Close the dialog and reset state
-    onClose();
-    setIsUploading(false);
-    setRecordingTime(0);
-    setRecordedBlob(null);
-    setIsRecording(false);
+    try {
+      // Send the blob to the parent component
+      onRecordingComplete(recordedBlob);
+      
+      // Close the dialog and reset state
+      onClose();
+    } catch (error) {
+      console.error("Error processing recording:", error);
+      toast({
+        title: "Error",
+        description: "Error al procesar la grabación.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      setRecordingTime(0);
+      setRecordedBlob(null);
+      setIsRecording(false);
+    }
   };
 
   const formatTime = (seconds: number) => {
