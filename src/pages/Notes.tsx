@@ -15,6 +15,7 @@ import MedicalSummaryView from '@/components/MedicalSummaryView';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Note } from '@/types/Note';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -239,40 +240,25 @@ Incluye:
 Usa lenguaje simple, evita jerga médica, y organiza la información en secciones claras y fáciles de entender.`;
 
     try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": geminiApiKey,
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: `${patientPrompt}
-                  
-                  Transcripción de la consulta médica:
-                  ${text}`
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.2,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
-          }
-        })
+      const genAI = new GoogleGenerativeAI(geminiApiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 0.2,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+        }
       });
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.candidates[0].content.parts[0].text || "No se pudo generar un resumen para el paciente.";
+      
+      const prompt = `${patientPrompt}
+                
+      Transcripción de la consulta médica:
+      ${text}`;
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text() || "No se pudo generar un resumen para el paciente.";
     } catch (error) {
       console.error("Error using Gemini API:", error);
       throw new Error("Failed to generate patient summary");
@@ -300,40 +286,19 @@ Incluye:
 Utiliza terminología médica estándar, sé conciso pero completo, y estructura el resumen en formato SOAP cuando sea posible.`;
 
     try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": geminiApiKey,
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: `${medicalPrompt}
-                  
-                  Transcripción de la consulta médica:
-                  ${text}`
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.2,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
-          }
-        })
+      const genAI = new GoogleGenerativeAI(geminiApiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash",
       });
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.candidates[0].content.parts[0].text || "No se pudo generar un resumen médico.";
+      
+      const prompt = `${medicalPrompt}
+                
+      Transcripción de la consulta médica:
+      ${text}`;
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text() || "No se pudo generar un resumen médico.";
     } catch (error) {
       console.error("Error using Gemini API:", error);
       throw new Error("Failed to generate medical summary");
