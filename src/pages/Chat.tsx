@@ -7,6 +7,7 @@ import { ArrowUp, Loader2 } from "lucide-react";
 import BottomNavigation from "@/components/BottomNavigation";
 import { useToast } from "@/hooks/use-toast";
 import { Note } from '@/types/Note';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 interface Message {
   id: string;
@@ -128,33 +129,14 @@ Usuario: ${inputMessage}
 Asistente:`;
 
       // Call Gemini API
-      const response = await fetch("https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": geminiApiKey,
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.4,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
-          }
-        })
+      const genAI = new GoogleGenerativeAI(geminiApiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash",
       });
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const responseText = data.candidates[0]?.content?.parts[0]?.text || 
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const responseText = response.text() || 
         "Lo siento, no pude procesar tu solicitud en este momento. Por favor, intenta de nuevo más tarde.";
       
       // Add system response
