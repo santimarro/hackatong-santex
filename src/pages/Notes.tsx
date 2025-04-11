@@ -352,6 +352,10 @@ Por favor, realiza lo siguiente:
 5. No inferir condiciones que no se mencionen explícitamente.
 6. Excluir condiciones descartadas o descartadas.
 7. Organiza la información cronológicamente cuando sea posible.
+8. Asegúrate de usar el formato markdown adecuadamente para los encabezados, listas y párrafos.
+9. Usa encabezados de nivel 2 (##) para las secciones principales y nivel 3 (###) para subsecciones.
+10. Utiliza listas con viñetas (*) para enumerar elementos relacionados.
+11. Agrega espacio después de los símbolos de marcado (# para encabezados, * para listas) para asegurar el formato correcto.
 
 La respuesta debe ser un único documento resumido, bien estructurado, con formato markdown, que un profesional médico pueda usar para entender rápidamente el historial completo del paciente.
 `;
@@ -359,7 +363,13 @@ La respuesta debe ser un único documento resumido, bien estructurado, con forma
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey);
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 0.2,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        }
       });
       
       const result = await model.generateContent(comprehensivePrompt);

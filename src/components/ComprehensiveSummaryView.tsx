@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Copy, Download, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { marked } from 'marked';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { 
   Select, 
   SelectContent, 
@@ -164,10 +164,12 @@ const ComprehensiveSummaryView: React.FC<ComprehensiveSummaryViewProps> = ({
               <span className="ml-2">Generando resumen completo...</span>
             </div>
           ) : comprehensiveSummary ? (
-            <div 
-              dangerouslySetInnerHTML={{ __html: marked(comprehensiveSummary) }} 
-              className="prose prose-sm max-w-none"
-            />
+            <div className="bg-white prose prose-headings:text-primary prose-sm md:prose-base max-w-none">
+              <MarkdownRenderer 
+                markdown={comprehensiveSummary} 
+                className="prose prose-headings:text-primary prose-sm md:prose-base max-w-none"
+              />
+            </div>
           ) : (
             <div className="text-center text-gray-500 p-6">
               <p>Selecciona las consultas y especialidades que deseas incluir en el resumen completo.</p>
