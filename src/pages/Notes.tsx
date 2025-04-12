@@ -230,16 +230,22 @@ const Notes = () => {
     }
 
     const patientPrompt = localStorage.getItem('patientPrompt') || 
-      `Crea un resumen médico amigable para el paciente a partir de la transcripción de la consulta médica. 
-Incluye:
-- Explicación simple del diagnóstico y qué significa
-- Pasos de tratamiento explicados en lenguaje sencillo
-- Signos de alerta que requieren atención médica
-- Cuándo programar seguimiento
-- Recomendaciones de estilo de vida
-- Respuestas a preguntas frecuentes
+      `Crea un resumen médico amigable para el paciente a partir de la transcripción de la consulta médica.
 
-Usa lenguaje simple, evita jerga médica, y organiza la información en secciones claras y fáciles de entender.`;
+IMPORTANTE: Debes incluir ÚNICAMENTE información que esté explícitamente mencionada en la transcripción. NO agregues:
+- Explicaciones adicionales que el médico no haya proporcionado
+- Recomendaciones que no fueron mencionadas
+- Interpretaciones o razonamientos que no estén presentes en la consulta original
+- Información sobre signos de alerta, a menos que el médico los haya mencionado específicamente
+
+Tu tarea es:
+1. Extraer y organizar la información proporcionada directamente por el médico en la consulta
+2. Presentarla en lenguaje simple y accesible para el paciente
+3. Mantener la fidelidad absoluta al contenido original de la transcripción
+
+Si el médico no explica algo en detalle, NO proporciones explicaciones adicionales.
+
+Organiza la información en secciones claras según lo que se haya discutido en la consulta.`;
 
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey);
