@@ -250,13 +250,7 @@ Organiza la información en secciones claras según lo que se haya discutido en 
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey);
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
-        generationConfig: {
-          temperature: 0.2,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        }
+        model: "gemini-2.0-flash",
       });
       
       const prompt = `${patientPrompt}
