@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -98,14 +97,14 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-w-[95vw] p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>Subir grabación de consulta médica</DialogTitle>
+          <DialogTitle className="text-center sm:text-left">Subir grabación de consulta médica</DialogTitle>
         </DialogHeader>
         
         {!selectedFile ? (
           <div 
-            className={`border-2 border-dashed rounded-lg p-8 text-center ${
+            className={`border-2 border-dashed rounded-lg p-4 sm:p-8 text-center ${
               isDragging ? 'border-primary bg-primary-light' : 'border-gray-300'
             }`}
             onDragEnter={handleDragEnter}
@@ -113,9 +112,9 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
             onDragOver={handleDragOver}
             onDrop={handleDrop}
           >
-            <Upload className="mx-auto h-10 w-10 text-gray-400 mb-4" />
+            <Upload className="mx-auto h-8 w-8 sm:h-10 sm:w-10 text-gray-400 mb-3 sm:mb-4" />
             <p className="text-sm font-medium mb-1">Arrastra y suelta un archivo de audio</p>
-            <p className="text-xs text-gray-500 mb-4">o</p>
+            <p className="text-xs text-gray-500 mb-3 sm:mb-4">o</p>
             <input
               type="file"
               ref={fileInputRef}
@@ -126,30 +125,33 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
             <Button
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
+              className="w-full sm:w-auto"
             >
               Seleccionar archivo
             </Button>
-            <p className="text-xs text-gray-500 mt-4">
+            <p className="text-xs text-gray-500 mt-3 sm:mt-4">
               Formatos permitidos: MP3, WAV, M4A, etc.
             </p>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-gray-500 mt-1 sm:mt-2">
               Tamaño máximo: 100MB
             </p>
           </div>
         ) : (
-          <div className="border rounded-lg p-4">
-            <div className="flex items-center">
-              <div className="mr-4 p-2 bg-primary-light rounded">
-                <FileAudio className="h-8 w-8 text-primary" />
+          <div className="border rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex justify-center sm:justify-start">
+                <div className="p-2 bg-primary-light rounded">
+                  <FileAudio className="h-8 w-8 text-primary" />
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{selectedFile.name}</p>
+              <div className="flex-1 min-w-0 text-center sm:text-left">
+                <p className="font-medium text-sm break-words">{selectedFile.name}</p>
                 <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
               </div>
               <Button 
                 variant="ghost" 
                 size="icon"
-                className="ml-2"
+                className="mx-auto sm:ml-2 sm:mx-0"
                 onClick={handleRemoveFile}
               >
                 <X className="h-4 w-4" />
@@ -158,7 +160,7 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
           </div>
         )}
         
-        <div className="text-xs text-gray-500 p-3 bg-primary-light/50 rounded-lg">
+        <div className="text-xs text-gray-500 p-3 bg-primary-light/50 rounded-lg mt-3 sm:mt-4">
           <p className="font-medium text-primary mb-1">Consejos para grabaciones de calidad:</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Asegúrate de que la grabación tenga buen audio</li>
@@ -167,11 +169,12 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
           </ul>
         </div>
         
-        <DialogFooter className="sm:justify-between">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 sm:gap-0 mt-4">
           <Button 
             variant="ghost" 
             onClick={onClose}
             disabled={isUploading}
+            className="w-full sm:w-auto"
           >
             Cancelar
           </Button>
@@ -180,7 +183,7 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
             <Button 
               onClick={handleSubmit}
               disabled={isUploading}
-              className="bg-secondary hover:bg-secondary/90"
+              className="w-full sm:w-auto bg-secondary hover:bg-secondary/90"
             >
               {isUploading ? (
                 <>

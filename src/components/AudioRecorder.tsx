@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Stethoscope, Square, Loader2 } from "lucide-react";
+import { Stethoscope, Square, Loader2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AudioRecorderProps {
@@ -15,124 +15,163 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>("");
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const timerRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const stopButtonRef = useRef<HTMLButtonElement>(null);
   const { toast } = useToast();
+
+  // Debug helper
+  const logDebug = (message: string) => {
+    console.log(message);
+    setDebugInfo(prev => `${message}\n${prev}`.slice(0, 500));
+  };
+
+  // Add manual event listener to stop button when it's mounted
+  useEffect(() => {
+    const stopButton = stopButtonRef.current;
+    if (stopButton) {
+      const forceStop = () => {
+        logDebug("🔴 Stop button clicked with direct event listener");
+        emergencyStop();
+      };
+      
+      stopButton.addEventListener('click', forceStop);
+      return () => {
+        stopButton.removeEventListener('click', forceStop);
+      };
+    }
+  }, [isRecording]);
 
   // Reset recording when dialog closes
   useEffect(() => {
     if (!isOpen) {
-      cleanupRecording();
+      emergencyStop();
       setRecordedBlob(null);
+      setDebugInfo("");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Cleanup on unmount
   useEffect(() => {
-    return cleanupRecording;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return emergencyStop;
   }, []);
 
-  // Function to clean up recording resources
-  const cleanupRecording = () => {
-    // Stop recording if active
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch (err) {
-        console.error("Error stopping media recorder:", err);
-      }
-    }
+  // Function for emergency stop that bypasses MediaRecorder API
+  const emergencyStop = () => {
+    logDebug("🚨 Emergency stop called");
     
-    // Clear the timer interval
+    // Force UI update immediately
+    setIsRecording(false);
+    
+    // Stop timer first
     if (timerRef.current) {
       window.clearInterval(timerRef.current);
       timerRef.current = null;
+      logDebug("⏱️ Timer cleared");
     }
     
-    // Stop and clean up media tracks
+    // Stop all tracks directly
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
+      try {
+        const tracks = streamRef.current.getTracks();
+        tracks.forEach(track => {
+          track.stop();
+          logDebug(`🎤 Track ${track.kind} stopped directly`);
+        });
+        streamRef.current = null;
+      } catch (e) {
+        logDebug(`❌ Error stopping tracks: ${e}`);
+      }
     }
     
-    setIsRecording(false);
-    setRecordingTime(0);
+    // Try saving any collected audio data
+    try {
+      if (chunksRef.current.length > 0) {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        setRecordedBlob(audioBlob);
+        logDebug(`💾 Audio blob created in emergency: ${audioBlob.size} bytes`);
+      }
+    } catch (e) {
+      logDebug(`❌ Error creating blob: ${e}`);
+    }
+    
+    // Reset MediaRecorder
+    mediaRecorderRef.current = null;
   };
 
   const startRecording = async () => {
     // Clean up any existing recording first
-    cleanupRecording();
+    emergencyStop();
     
     // Reset state
     chunksRef.current = [];
     setRecordingTime(0);
     setRecordedBlob(null);
+    setDebugInfo("");
+    
+    logDebug("▶️ Starting recording...");
     
     try {
       // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+      logDebug("🎤 Microphone access granted");
       
       // Set up media recorder with proper options
       const options = { mimeType: 'audio/webm' };
       const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       
-      // This will be called whenever there is data available
+      // Set up data collection
       mediaRecorder.ondataavailable = (event) => {
-        console.log("Data available", event.data.size);
         if (event.data && event.data.size > 0) {
           chunksRef.current.push(event.data);
+          logDebug(`📦 Data chunk collected: ${event.data.size} bytes`);
         }
       };
       
-      // This will be called when recording stops
+      // Set up stop handler
       mediaRecorder.onstop = () => {
-        console.log("MediaRecorder stopped", chunksRef.current.length);
+        logDebug(`⏹️ MediaRecorder.onstop fired, chunks: ${chunksRef.current.length}`);
+        
         // Create audio blob from recorded chunks
         if (chunksRef.current.length > 0) {
-          const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-          setRecordedBlob(audioBlob);
-          console.log("Blob created", audioBlob.size);
-        } else {
-          console.warn("No audio data collected");
+          try {
+            const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+            setRecordedBlob(audioBlob);
+            logDebug(`💾 Final blob created: ${audioBlob.size} bytes`);
+          } catch (e) {
+            logDebug(`❌ Error in onstop handler: ${e}`);
+          }
         }
-        
-        // Stop all audio tracks
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
-        }
-        
-        // Clear the timer
-        if (timerRef.current) {
-          window.clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-        
-        // Update state
-        setIsRecording(false);
       };
       
-      // Request data every second
-      mediaRecorder.start(1000);
-      console.log("MediaRecorder started", mediaRecorder.state);
+      // Start recorder with 500ms data chunks for more frequent updates
+      mediaRecorder.start(500);
+      logDebug(`▶️ MediaRecorder started: ${mediaRecorder.state}`);
+      
+      // Update UI
       setIsRecording(true);
       
-      // Set up timer to update UI
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
-      }
-      
+      // Set up timer for UI
       timerRef.current = window.setInterval(() => {
-        setRecordingTime(prevTime => prevTime + 1);
+        setRecordingTime(prevTime => {
+          // Auto-stop after 5 minutes as a safety measure
+          if (prevTime >= 300) {
+            logDebug("⏱️ Auto-stopping after 5 minutes");
+            stopRecording();
+            return prevTime;
+          }
+          return prevTime + 1;
+        });
       }, 1000);
       
     } catch (error) {
-      console.error("Error accessing microphone:", error);
+      logDebug(`❌ Error starting recording: ${error}`);
       toast({
         title: "Error",
         description: "No se pudo acceder al micrófono. Verifica los permisos.",
@@ -142,41 +181,52 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
   };
 
   const stopRecording = () => {
-    console.log("Stopping recording");
+    logDebug("🛑 Standard stop recording called");
+    
+    // Update UI immediately
+    setIsRecording(false);
+    
+    // Try the standard way first
     if (mediaRecorderRef.current) {
-      if (mediaRecorderRef.current.state === 'recording') {
-        console.log("MediaRecorder is recording, stopping now");
-        try {
-          // Request data one final time before stopping
+      try {
+        if (mediaRecorderRef.current.state === 'recording') {
+          // Request final data chunk
           mediaRecorderRef.current.requestData();
-          // Then stop the recorder
+          logDebug("📦 Final data requested");
+          
+          // Stop recording
           mediaRecorderRef.current.stop();
-        } catch (err) {
-          console.error("Error stopping recorder:", err);
-          // Fallback cleanup in case of error
-          cleanupRecording();
+          logDebug("⏹️ MediaRecorder.stop() called");
+        } else {
+          logDebug(`⚠️ MediaRecorder not recording: ${mediaRecorderRef.current.state}`);
         }
-      } else {
-        console.log("MediaRecorder is not recording", mediaRecorderRef.current.state);
+      } catch (e) {
+        logDebug(`❌ Error in standard stop: ${e}`);
       }
-    } else {
-      console.log("No MediaRecorder found");
     }
+    
+    // Always follow up with emergency stop to be sure
+    setTimeout(emergencyStop, 100);
   };
 
   const handleSubmit = () => {
-    if (!recordedBlob) return;
+    if (!recordedBlob) {
+      logDebug("❌ No blob available for submission");
+      return;
+    }
     
     setIsUploading(true);
+    logDebug("📤 Submitting recording");
     
     try {
       // Send the blob to the parent component
       onRecordingComplete(recordedBlob);
+      logDebug("✅ Recording submitted successfully");
       
       // Close the dialog and reset state
       onClose();
     } catch (error) {
-      console.error("Error processing recording:", error);
+      logDebug(`❌ Error submitting: ${error}`);
       toast({
         title: "Error",
         description: "Error al procesar la grabación.",
@@ -209,19 +259,22 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
           <div className="mb-6">
             {isRecording ? (
               <div className="relative">
-                <div className="absolute -inset-1 rounded-full bg-destructive/20 animate-pulse"></div>
+                <div className="absolute -inset-2 rounded-full bg-destructive/30 animate-pulse"></div>
+                {/* Primary stop button with ref for direct event handling */}
                 <Button 
-                  variant="outline" 
+                  ref={stopButtonRef}
+                  variant="default" 
                   size="icon" 
-                  className="h-16 w-16 rounded-full border-destructive border-2" 
+                  className="h-20 w-20 rounded-full bg-destructive hover:bg-destructive/90" 
                   onClick={stopRecording}
                 >
-                  <Square className="h-6 w-6 text-destructive" />
+                  <Square className="h-8 w-8 text-white" />
                 </Button>
               </div>
             ) : recordedBlob ? (
-              <div>
-                <audio src={URL.createObjectURL(recordedBlob)} controls className="mb-4" />
+              <div className="text-center">
+                <audio src={URL.createObjectURL(recordedBlob)} controls className="mb-4 w-full" />
+                <p className="text-sm text-gray-500 mb-2">Reproducir para verificar</p>
               </div>
             ) : (
               <Button 
@@ -236,10 +289,27 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
           </div>
           
           <p className="text-sm text-gray-500">
-            {isRecording ? "Grabando consulta..." : 
-              recordedBlob ? "Reproducir para verificar" : 
-              "Haz clic para comenzar a grabar la consulta"}
+            {isRecording ? (
+              <span className="font-medium text-destructive">
+                Haz clic en el botón para detener la grabación
+              </span>
+            ) : !recordedBlob ? (
+              "Haz clic para comenzar a grabar la consulta"
+            ) : null}
           </p>
+          
+          {/* Emergency stop button when recording */}
+          {isRecording && (
+            <Button 
+              variant="destructive"
+              size="sm"
+              onClick={emergencyStop}
+              className="mt-4"
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Parar grabación
+            </Button>
+          )}
           
           {!isRecording && !recordedBlob && (
             <div className="mt-4 max-w-xs text-center text-xs text-gray-500">
@@ -247,6 +317,13 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
               <p className="mt-2">Recuerda obtener permiso antes de grabar la consulta.</p>
             </div>
           )}
+          
+          {/* Debug information section
+          {debugInfo && (
+            <div className="mt-4 p-2 border border-gray-200 rounded text-xs w-full bg-gray-50 overflow-auto max-h-20">
+              <pre className="whitespace-pre-wrap">{debugInfo}</pre>
+            </div>
+          )} */}
         </div>
         
         <DialogFooter className="sm:justify-between">
@@ -262,7 +339,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
             <Button 
               onClick={handleSubmit}
               disabled={isUploading}
-              className="bg-secondary hover:bg-secondary/90"
+              className="bg-secondary hover:bg-secondary/90 px-6"
             >
               {isUploading ? (
                 <>
