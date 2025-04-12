@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, AlertTriangle, Printer } from "lucide-react";
 import BottomNavigation from "@/components/BottomNavigation";
+import QRCode from "react-qr-code";
 
 const Emergency = () => {
   const navigate = useNavigate();
   
-  // Mock emergency data
+  // Datos de emergencia de ejemplo
   const emergencyData = {
+    id: "user123", // User ID for the public link
     fullName: "Juan Pérez",
     age: 58,
     bloodType: "O+",
@@ -39,13 +41,16 @@ const Emergency = () => {
     ]
   };
 
+  // Generate the full URL for the public emergency page
+  const publicEmergencyUrl = `${window.location.origin}/emergency/public/${emergencyData.id}`;
+
   const handlePrint = () => {
     window.print();
   };
 
   return (
     <div className="flex flex-col h-screen bg-white">
-      {/* Header */}
+      {/* Cabecera */}
       <header className="flex items-center px-6 py-4 border-b border-gray-200">
         <button 
           className="mr-2" 
@@ -56,24 +61,21 @@ const Emergency = () => {
         <h1 className="text-xl font-bold">En caso de Emergencia</h1>
       </header>
       
-      {/* Main content */}
+      {/* Contenido principal */}
       <div className="flex-1 overflow-auto p-6 pb-16">
         <div className="flex flex-col items-center">
           <p className="text-center mb-4">
-            imprima este QR el cual contiene informacion<br/>
-            Vital de Juan Perez
+            Imprima este QR el cual contiene información<br/>
+            vital de Juan Pérez
           </p>
           
-          {/* QR Code - Replace with actual QR code component */}
-          <div className="border-2 border-black p-2 mb-6">
-            <img 
-              src="/qr-placeholder.png" 
-              alt="QR Code" 
-              className="w-64 h-64"
-              onError={(e) => {
-                // Fallback to a basic QR representation if image not found
-                e.currentTarget.outerHTML = `<div class="w-64 h-64 bg-gray-200 flex items-center justify-center text-gray-500">QR Code</div>`;
-              }}
+          {/* Código QR generado dinámicamente */}
+          <div className="border-2 border-black p-4 mb-6 bg-white">
+            <QRCode
+              value={publicEmergencyUrl}
+              size={256}
+              style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+              viewBox={`0 0 256 256`}
             />
           </div>
           
@@ -82,7 +84,7 @@ const Emergency = () => {
             Imprimir QR
           </Button>
           
-          {/* Emergency information preview */}
+          {/* Vista previa de información de emergencia */}
           <Card className="w-full max-w-md border-red-200">
             <CardContent className="p-4">
               <div className="flex items-center mb-4">
@@ -138,7 +140,7 @@ const Emergency = () => {
         </div>
       </div>
       
-      {/* Bottom Navigation */}
+      {/* Navegación inferior */}
       <BottomNavigation />
     </div>
   );

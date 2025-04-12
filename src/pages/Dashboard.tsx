@@ -11,7 +11,7 @@ const Dashboard = () => {
   // Mock data for upcoming appointments
   const upcomingAppointment = {
     doctorName: "Fernando Quintero",
-    specialty: "Traumatology",
+    specialty: "Traumatología",
     date: new Date(),
     time: "11:00 AM"
   };

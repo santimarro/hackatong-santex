@@ -94,11 +94,11 @@ const Notes = () => {
     }
   }, [location, navigate]);
   
-  // Mock appointment data when coming from appointment detail
+  // Datos de cita de ejemplo cuando se viene desde el detalle de una cita
   const appointmentData = appointmentId ? {
     id: appointmentId,
     doctorName: "Fernando Quinteros",
-    specialty: "Traumatologia",
+    specialty: "Traumatología",
     institution: "Hospital Italiano",
     date: new Date(),
     time: "11:00 AM",
@@ -587,7 +587,7 @@ La respuesta debe ser un único documento resumido, bien estructurado, con forma
           )}
           <h1 className="text-xl font-bold text-primary flex items-center">
             <Stethoscope className="h-5 w-5 mr-2" />
-            MediNote
+            René
           </h1>
         </div>
       </header>

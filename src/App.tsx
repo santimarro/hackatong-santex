@@ -16,6 +16,7 @@ import AppointmentDetail from "./pages/AppointmentDetail";
 import Chat from "./pages/Chat";
 import Emergency from "./pages/Emergency";
 import Profile from "./pages/Profile";
+import PublicEmergency from "./pages/PublicEmergency";
 
 // Components
 import AppointmentForm from "./components/AppointmentForm";
@@ -41,6 +42,8 @@ const App = () => {
             <Route path="/emergency" element={<Emergency />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/consultation/new" element={<Navigate to="/notes" replace state={{ preserveSearch: true }} />} />
+            {/* Public routes that don't require authentication */}
+            <Route path="/emergency/public/:userId" element={<PublicEmergency />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
