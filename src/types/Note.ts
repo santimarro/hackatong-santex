@@ -1,4 +1,3 @@
-
 export interface Note {
   id: string;
   title: string;
@@ -15,4 +14,5 @@ export interface Note {
   transcription: string;
   patientSummary: string;
   medicalSummary: string;
+  augmentedMedicalSummary?: string;
 }

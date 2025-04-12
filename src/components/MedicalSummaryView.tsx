@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Note } from '@/types/Note';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Copy, Download, Mail, Share } from "lucide-react";
+import { Copy, Download, Mail, Share, Brain } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 
@@ -12,6 +12,7 @@ interface MedicalSummaryViewProps {
 
 const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
   const { toast } = useToast();
+  const [showAugmented, setShowAugmented] = useState(false);
 
   const handleCopyToClipboard = async () => {
     try {
@@ -114,6 +115,42 @@ const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
           </div>
         </CardContent>
       </Card>
+      
+      {note.augmentedMedicalSummary && (
+        <div className="mt-6">
+          {!showAugmented ? (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full" 
+              onClick={() => setShowAugmented(true)}
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              Mostrar Consulta Aumentada
+            </Button>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium">Consulta Aumentada - Segunda Opinión</h3>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowAugmented(false)}
+                >
+                  Ocultar
+                </Button>
+              </div>
+              <Card className="border-primary-light">
+                <CardContent className="p-6">
+                  <div className="bg-white">
+                    <MarkdownRenderer markdown={note.augmentedMedicalSummary} className="prose prose-headings:text-primary prose-sm md:prose-base max-w-none" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -22,6 +22,50 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const deepgramApiKey = import.meta.env.VITE_DEEPGRAM_API_KEY;
 
+// Define prompts as module-level constants
+const DEFAULT_PATIENT_PROMPT = `Crea un resumen médico amigable para el paciente a partir de la transcripción de la consulta médica.
+
+IMPORTANTE: Debes incluir ÚNICAMENTE información que esté explícitamente mencionada en la transcripción. NO agregues:
+- Explicaciones adicionales que el médico no haya proporcionado
+- Recomendaciones que no fueron mencionadas
+- Interpretaciones o razonamientos que no estén presentes en la consulta original
+- Información sobre signos de alerta, a menos que el médico los haya mencionado específicamente
+
+Tu tarea es:
+1. Extraer y organizar la información proporcionada directamente por el médico en la consulta
+2. Presentarla en lenguaje simple y accesible para el paciente
+3. Mantener la fidelidad absoluta al contenido original de la transcripción
+
+Si el médico no explica algo en detalle, NO proporciones explicaciones adicionales.
+
+Organiza la información en secciones claras según lo que se haya discutido en la consulta.`;
+
+const DEFAULT_MEDICAL_PROMPT = `Genera un resumen clínico profesional en formato SOAP a partir de la transcripción de la consulta médica.
+IMPORTANTE: Incluye ÚNICAMENTE información que esté explícitamente mencionada en la transcripción.
+
+Estructura el resumen usando el formato SOAP:
+- S (Subjetivo): Información proporcionada por el paciente, síntomas, quejas y antecedentes mencionados
+- O (Objetivo): Hallazgos del examen físico y resultados de pruebas mencionados en la transcripción
+- A (Análisis/Evaluación): Diagnóstico o evaluación mencionada por el médico, sin añadir interpretaciones adicionales
+- P (Plan): Plan de tratamiento y recomendaciones explícitamente mencionadas por el médico
+
+Utiliza terminología médica estándar y mantén absoluta fidelidad al contenido de la transcripción.`;
+
+const DEFAULT_AUGMENTED_MEDICAL_PROMPT = `Actúa como un asistente médico experto que ofrece una segunda opinión basada en la transcripción de una consulta médica.
+
+Tu objetivo es ayudar al médico tratante con:
+1. Posibles diagnósticos diferenciales que podrían considerarse basados en los síntomas y hallazgos
+2. Sugerencias de pruebas diagnósticas adicionales que podrían ser relevantes
+3. Opciones de tratamiento alternativas o complementarias basadas en la práctica médica actual
+4. Referencias a guías clínicas o evidencia científica reciente relevante para el caso
+5. Consideraciones especiales que podrían haberse pasado por alto
+6. Posibles interacciones medicamentosas o contraindicaciones
+
+Puedes incluir tu razonamiento clínico y explicaciones detalladas para apoyar tus sugerencias.
+Organiza tu respuesta en secciones claras y utiliza lenguaje profesional médico.
+
+NOTA: Esta segunda opinión es solo informativa y no reemplaza el juicio clínico del médico tratante.`;
+
 const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
@@ -103,6 +147,7 @@ const Notes = () => {
       
       const patientSummary = await generatePatientSummary(transcript);
       const medicalSummary = await generateMedicalSummary(transcript);
+      const augmentedMedicalSummary = await generateAugmentedMedicalSummary(transcript);
       
       const title = appointmentData 
         ? `Consulta ${appointmentData.doctorName} - ${appointmentData.specialty}`
@@ -116,6 +161,7 @@ const Notes = () => {
         transcription: transcript,
         patientSummary: patientSummary,
         medicalSummary: medicalSummary,
+        augmentedMedicalSummary: augmentedMedicalSummary,
       };
       
       setNotes(prev => [newNote, ...prev]);
@@ -147,6 +193,7 @@ const Notes = () => {
       
       const patientSummary = await generatePatientSummary(transcript);
       const medicalSummary = await generateMedicalSummary(transcript);
+      const augmentedMedicalSummary = await generateAugmentedMedicalSummary(transcript);
       
       const title = appointmentData 
         ? `Consulta ${appointmentData.doctorName} - ${appointmentData.specialty}`
@@ -160,6 +207,7 @@ const Notes = () => {
         transcription: transcript,
         patientSummary: patientSummary,
         medicalSummary: medicalSummary,
+        augmentedMedicalSummary: augmentedMedicalSummary,
       };
       
       setNotes(prev => [newNote, ...prev]);
@@ -229,23 +277,7 @@ const Notes = () => {
       throw new Error("Gemini API key not configured in environment variables");
     }
 
-    const patientPrompt = localStorage.getItem('patientPrompt') || 
-      `Crea un resumen médico amigable para el paciente a partir de la transcripción de la consulta médica.
-
-IMPORTANTE: Debes incluir ÚNICAMENTE información que esté explícitamente mencionada en la transcripción. NO agregues:
-- Explicaciones adicionales que el médico no haya proporcionado
-- Recomendaciones que no fueron mencionadas
-- Interpretaciones o razonamientos que no estén presentes en la consulta original
-- Información sobre signos de alerta, a menos que el médico los haya mencionado específicamente
-
-Tu tarea es:
-1. Extraer y organizar la información proporcionada directamente por el médico en la consulta
-2. Presentarla en lenguaje simple y accesible para el paciente
-3. Mantener la fidelidad absoluta al contenido original de la transcripción
-
-Si el médico no explica algo en detalle, NO proporciones explicaciones adicionales.
-
-Organiza la información en secciones claras según lo que se haya discutido en la consulta.`;
+    const patientPrompt = localStorage.getItem('patientPrompt') || DEFAULT_PATIENT_PROMPT;
 
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey);
@@ -272,19 +304,7 @@ Organiza la información en secciones claras según lo que se haya discutido en 
       throw new Error("Gemini API key not configured in environment variables");
     }
 
-    const medicalPrompt = localStorage.getItem('medicalPrompt') || 
-      `Genera un resumen clínico profesional a partir de la transcripción de la consulta médica.
-Incluye:
-- Datos demográficos del paciente
-- Historia clínica relevante
-- Examen físico y hallazgos
-- Resultados de pruebas e interpretación
-- Diagnóstico diferencial y justificación
-- Plan de tratamiento con dosificación específica
-- Recomendaciones de seguimiento con plazos
-- Consideraciones especiales
-
-Utiliza terminología médica estándar, sé conciso pero completo, y estructura el resumen en formato SOAP cuando sea posible.`;
+    const medicalPrompt = localStorage.getItem('medicalPrompt') || DEFAULT_MEDICAL_PROMPT;
 
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey);
@@ -303,6 +323,33 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
     } catch (error) {
       console.error("Error using Gemini API:", error);
       throw new Error("Failed to generate medical summary");
+    }
+  };
+
+  const generateAugmentedMedicalSummary = async (text: string): Promise<string> => {
+    if (!geminiApiKey) {
+      throw new Error("Gemini API key not configured in environment variables");
+    }
+
+    try {
+      const augmentedMedicalPrompt = localStorage.getItem('augmentedMedicalPrompt') || DEFAULT_AUGMENTED_MEDICAL_PROMPT;
+      
+      const genAI = new GoogleGenerativeAI(geminiApiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash",
+      });
+      
+      const prompt = `${augmentedMedicalPrompt}
+                
+      Transcripción de la consulta médica:
+      ${text}`;
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text() || "No se pudo generar una consulta aumentada.";
+    } catch (error) {
+      console.error("Error using Gemini API:", error);
+      throw new Error("Failed to generate augmented medical summary");
     }
   };
 
