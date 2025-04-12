@@ -17,6 +17,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { Note } from '@/types/Note';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { sampleNote } from '@/data/sampleNotes';
 
 // Use Vite's environment variables
 const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -122,20 +123,37 @@ const Notes = () => {
       return;
     }
 
+    // Load saved notes from localStorage
     const savedNotes = localStorage.getItem('medicalNotes');
+    let parsedNotes: Note[] = [];
+    
     if (savedNotes) {
       try {
-        const parsedNotes = JSON.parse(savedNotes);
-        setNotes(parsedNotes);
+        parsedNotes = JSON.parse(savedNotes);
       } catch (e) {
         console.error("Error parsing saved notes:", e);
       }
     }
+    
+    // Check if the sample note already exists in the saved notes
+    const sampleNoteExists = parsedNotes.some(note => note.id === sampleNote.id);
+    
+    // If sample note doesn't exist, add it to the notes array
+    if (!sampleNoteExists) {
+      parsedNotes = [sampleNote, ...parsedNotes];
+    }
+    
+    setNotes(parsedNotes);
   }, [toast]);
 
   useEffect(() => {
     if (notes.length > 0) {
-      localStorage.setItem('medicalNotes', JSON.stringify(notes));
+      // Make sure we preserve the sample note when saving to localStorage
+      // by filtering out any duplicate before saving
+      const notesToSave = notes.filter((note, index, self) => 
+        index === self.findIndex(n => n.id === note.id)
+      );
+      localStorage.setItem('medicalNotes', JSON.stringify(notesToSave));
     }
   }, [notes]);
 

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Copy, Download, Mail, Share, Brain } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MedicalSummaryViewProps {
   note: Note;
@@ -13,6 +14,7 @@ interface MedicalSummaryViewProps {
 const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
   const { toast } = useToast();
   const [showAugmented, setShowAugmented] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleCopyToClipboard = async () => {
     try {
@@ -70,40 +72,44 @@ const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between">
+      <div className="flex flex-col sm:flex-row justify-between gap-2">
         <h3 className="text-lg font-medium">Resumen médico profesional</h3>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 justify-end">
           <Button 
             variant="outline" 
             size="sm" 
             onClick={handleCopyToClipboard}
+            className="flex-1 sm:flex-initial"
           >
             <Copy className="h-4 w-4 mr-1" />
-            Copiar
+            {isMobile ? '' : 'Copiar'}
           </Button>
           <Button 
             variant="outline" 
             size="sm" 
             onClick={handleDownloadSummary}
+            className="flex-1 sm:flex-initial"
           >
             <Download className="h-4 w-4 mr-1" />
-            Descargar
+            {isMobile ? '' : 'Descargar'}
           </Button>
           <Button 
             variant="outline" 
             size="sm" 
             onClick={handleEmailSummary}
+            className="flex-1 sm:flex-initial"
           >
             <Mail className="h-4 w-4 mr-1" />
-            Email
+            {isMobile ? '' : 'Email'}
           </Button>
           <Button 
             variant="outline" 
             size="sm" 
             onClick={handleShareSummary}
+            className="flex-1 sm:flex-initial"
           >
             <Share className="h-4 w-4 mr-1" />
-            Compartir
+            {isMobile ? '' : 'Compartir'}
           </Button>
         </div>
       </div>

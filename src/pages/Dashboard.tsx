@@ -2,8 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, Stethoscope } from "lucide-react";
+import { ArrowRight, Stethoscope, FileText } from "lucide-react";
 import BottomNavigation from "@/components/BottomNavigation";
+import { sampleNote } from "@/data/sampleNotes";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -64,10 +65,36 @@ const Dashboard = () => {
           
           <Button 
             variant="outline" 
-            className="w-full" 
+            className="w-full mb-6" 
             onClick={() => navigate('/appointments')}
           >
             Ver todos los turnos
+          </Button>
+        </div>
+
+        {/* Previous consultation notes */}
+        <div className="mt-2 px-6">
+          <h2 className="text-lg font-medium mb-2">Consultas Anteriores</h2>
+          
+          <Card className="mb-4 cursor-pointer" onClick={() => navigate('/note/' + sampleNote.id)}>
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium">{sampleNote.title}</h3>
+                  <p className="text-sm text-gray-500">{sampleNote.doctorName} - {sampleNote.specialty}</p>
+                  <p className="text-sm text-gray-500">{new Date(sampleNote.date).toLocaleDateString()}</p>
+                </div>
+                <FileText className="h-5 w-5 text-gray-400" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={() => navigate('/notes')}
+          >
+            Ver todas las consultas
           </Button>
         </div>
       </div>

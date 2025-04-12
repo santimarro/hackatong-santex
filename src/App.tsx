@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import Appointments from "./pages/Appointments";
 import AppointmentDetail from "./pages/AppointmentDetail";
+import NoteDetail from "./pages/NoteDetail";
 import Chat from "./pages/Chat";
 import Emergency from "./pages/Emergency";
 import Profile from "./pages/Profile";
@@ -35,6 +36,7 @@ const App = () => {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/notes" element={<Notes />} />
+            <Route path="/note/:id" element={<NoteDetail />} />
             <Route path="/appointments" element={<Appointments />} />
             <Route path="/appointments/new" element={<AppointmentForm />} />
             <Route path="/appointment/:id" element={<AppointmentDetail />} />
