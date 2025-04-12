@@ -96,8 +96,61 @@ export default {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'pulse-soft': 'pulse-soft 2s ease-in-out infinite'
-			}
+			},
+			typography: {
+				DEFAULT: {
+					css: {
+						maxWidth: '100%',
+						color: 'inherit',
+						a: {
+							color: 'var(--primary)',
+							'&:hover': {
+								color: 'var(--primary-dark)',
+							},
+							textDecoration: 'none',
+						},
+						h1: {
+							color: 'var(--primary)',
+							fontWeight: '700',
+						},
+						h2: {
+							color: 'var(--primary)',
+							fontWeight: '600',
+						},
+						h3: {
+							color: 'var(--primary)',
+							fontWeight: '600',
+						},
+						h4: {
+							color: 'var(--primary)',
+							fontWeight: '600',
+						},
+						code: {
+							color: 'var(--primary)',
+							backgroundColor: 'var(--primary-light)',
+							padding: '0.25rem',
+							borderRadius: '0.25rem',
+							fontWeight: '500',
+						},
+						'code::before': {
+							content: '""',
+						},
+						'code::after': {
+							content: '""',
+						},
+						pre: {
+							backgroundColor: 'var(--primary-light)',
+							color: 'var(--primary)',
+							borderRadius: '0.5rem',
+							padding: '1rem',
+						},
+					},
+				},
+			},
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [
+		require("tailwindcss-animate"),
+		require("@tailwindcss/typography"),
+	],
 } satisfies Config;

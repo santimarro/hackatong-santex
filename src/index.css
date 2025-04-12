@@ -99,3 +99,157 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Enhanced markdown styles */
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  color: #4361ee;
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose h1 {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+
+.prose h2 {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.prose h3 {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.prose p {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  line-height: 1.6;
+}
+
+.prose ul, .prose ol {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  padding-left: 1.5em;
+}
+
+.prose ul {
+  list-style-type: disc;
+}
+
+.prose ol {
+  list-style-type: decimal;
+}
+
+.prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.prose li > p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose blockquote {
+  border-left: 4px solid #4361ee;
+  padding-left: 1em;
+  margin-left: 0;
+  margin-right: 0;
+  font-style: italic;
+  color: #4b5563;
+}
+
+.prose code {
+  background-color: #EEF1FF;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25em;
+  font-size: 0.875em;
+  color: #4361ee;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.prose pre {
+  background-color: #1e293b;
+  border-radius: 0.5em;
+  overflow-x: auto;
+  padding: 1em;
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+.prose pre code {
+  background-color: transparent;
+  color: white;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.prose a {
+  color: #4361ee;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose a:hover {
+  text-decoration: none;
+}
+
+/* Fix styling for list markers */
+.prose ul li::marker,
+.prose ol li::marker {
+  color: #4361ee;
+}
+
+/* Horizontal rule styling */
+.prose hr {
+  border-color: #e5e7eb;
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+/* Table styling */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+.prose thead {
+  background-color: #f3f4f6;
+}
+
+.prose th {
+  padding: 0.75em;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.prose td {
+  padding: 0.75em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Fix link styling inside headers */
+.prose h1 a,
+.prose h2 a,
+.prose h3 a,
+.prose h4 a,
+.prose h5 a,
+.prose h6 a {
+  color: inherit;
+}
+
+/* Fix spacing after lists and blockquotes */
+.prose ul + p,
+.prose ol + p,
+.prose blockquote + p {
+  margin-top: 1.5em;
+}

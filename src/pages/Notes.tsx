@@ -5,13 +5,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Stethoscope, Upload, Settings, Plus, Loader2, Share, Menu, X, ArrowLeft, Calendar, Clock, MapPin } from "lucide-react";
+import { Stethoscope, Upload, Settings, Plus, Loader2, Share, Menu, X, ArrowLeft, Calendar, Clock, MapPin, FileText } from "lucide-react";
 import NotesList from '@/components/NotesList';
 import AudioRecorder from '@/components/AudioRecorder';
 import AudioUploader from '@/components/AudioUploader';
 import TranscriptionView from '@/components/TranscriptionView';
 import PatientSummaryView from '@/components/PatientSummaryView';
 import MedicalSummaryView from '@/components/MedicalSummaryView';
+import ComprehensiveSummaryView from '@/components/ComprehensiveSummaryView';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Note } from '@/types/Note';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -25,6 +26,8 @@ const Notes = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState("transcription");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [comprehensiveSummary, setComprehensiveSummary] = useState<string>("");
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -305,6 +308,102 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
     }
   };
 
+  const generateComprehensiveSummary = async (selectedSpecialty: string | null, selectedNoteIds: string[]): Promise<string> => {
+    const geminiApiKey = localStorage.getItem('geminiApiKey');
+    if (!geminiApiKey) {
+      throw new Error("Gemini API key not found");
+    }
+
+    // Get selected notes
+    const filteredNotes = notes.filter(note => selectedNoteIds.includes(note.id));
+    
+    // Include specialty in the system prompt if one is selected
+    const systemPrompt = `Eres un experto médico especializado en resumir historias clínicas de pacientes${selectedSpecialty ? ` con enfoque en ${selectedSpecialty}` : ''}.`;
+    
+    // Create an array of all medical summaries with metadata
+    const summaries = filteredNotes.map(note => {
+      // Extract specialization and date
+      const specialtyText = note.specialty ? `Especialidad: ${note.specialty}` : '';
+      const dateText = `Fecha: ${new Date(note.date).toLocaleDateString()}`;
+      const titleText = `Consulta: ${note.title}`;
+      
+      // Return formatted summary with metadata
+      return `
+===== ${titleText} =====
+${dateText}
+${specialtyText ? specialtyText + '\n' : ''}
+
+${note.medicalSummary}
+      `;
+    }).join("\n\n");
+
+    // Format the comprehensive prompt similar to the Python example
+    const comprehensivePrompt = `Aquí hay resúmenes de varias consultas médicas del paciente:
+
+<resúmenes>
+${summaries}
+</resúmenes>
+
+Por favor, realiza lo siguiente:
+1. Lee detalladamente los resúmenes proporcionados de las diversas consultas médicas.
+2. Combina los resúmenes en una única narrativa coherente y completa del historial médico del paciente.${selectedSpecialty ? `\n3. Enfócate principalmente en la información relacionada con ${selectedSpecialty}.` : ''}
+3. La narrativa debe proporcionar una visión longitudinal de la actividad clínica del paciente basada en las diversas consultas.
+4. Destaca cualquier hallazgo anormal en pruebas o resultados de laboratorio si están disponibles.
+5. No inferir condiciones que no se mencionen explícitamente.
+6. Excluir condiciones descartadas o descartadas.
+7. Organiza la información cronológicamente cuando sea posible.
+8. Asegúrate de usar el formato markdown adecuadamente para los encabezados, listas y párrafos.
+9. Usa encabezados de nivel 2 (##) para las secciones principales y nivel 3 (###) para subsecciones.
+10. Utiliza listas con viñetas (*) para enumerar elementos relacionados.
+11. Agrega espacio después de los símbolos de marcado (# para encabezados, * para listas) para asegurar el formato correcto.
+
+La respuesta debe ser un único documento resumido, bien estructurado, con formato markdown, que un profesional médico pueda usar para entender rápidamente el historial completo del paciente.
+`;
+
+    try {
+      const genAI = new GoogleGenerativeAI(geminiApiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 0.2,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        }
+      });
+      
+      const result = await model.generateContent(comprehensivePrompt);
+      const response = await result.response;
+      return response.text() || "No se pudo generar un resumen médico integral.";
+    } catch (error) {
+      console.error("Error using Gemini API:", error);
+      throw new Error("Failed to generate comprehensive medical summary");
+    }
+  };
+
+  const handleGenerateComprehensiveSummary = async (selectedSpecialty: string | null, selectedNoteIds: string[]) => {
+    setIsGeneratingSummary(true);
+    
+    try {
+      const summary = await generateComprehensiveSummary(selectedSpecialty, selectedNoteIds);
+      setComprehensiveSummary(summary);
+      
+      toast({
+        title: "Éxito",
+        description: "Resumen médico integral generado correctamente",
+      });
+    } catch (error) {
+      console.error("Error generando resumen integral:", error);
+      toast({
+        title: "Error",
+        description: "Error al generar el resumen médico integral",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -521,35 +620,56 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
               </TabsContent>
             </Tabs>
           ) : (
-            <div className="flex-1 flex items-center justify-center pb-24">
-              <Card className="w-96 bg-primary-light border-none">
-                <CardContent className="pt-6">
-                  <div className="text-center space-y-4">
-                    <Stethoscope className="h-12 w-12 text-primary mx-auto" />
-                    <h3 className="font-semibold text-lg">Registra tus consultas médicas</h3>
-                    <p className="text-sm text-gray-600">Graba o sube un audio de tu consulta médica para transcribirla y obtener resúmenes personalizados.</p>
-                    <div className="flex justify-center gap-4 pt-2">
-                      <Button 
-                        variant="default" 
-                        onClick={() => setIsRecording(true)}
-                        disabled={isRecording || isUploading}
-                      >
-                        <Stethoscope className="h-4 w-4 mr-2" />
-                        Grabar consulta
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setIsUploading(true)}
-                        disabled={isRecording || isUploading}
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Subir audio
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <Tabs defaultValue="new" className="flex-1 flex flex-col overflow-hidden">
+              <div className="border-b border-gray-200 px-6 py-2">
+                <TabsList className="grid w-full max-w-md grid-cols-2">
+                  <TabsTrigger value="new">Nueva consulta</TabsTrigger>
+                  <TabsTrigger value="comprehensive" disabled={notes.length === 0}>
+                    <FileText className="h-4 w-4 mr-1" />
+                    Resumen integral
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              <TabsContent value="new" className="flex-1 overflow-auto pb-24">
+                <div className="flex-1 flex items-center justify-center">
+                  <Card className="w-96 bg-primary-light border-none">
+                    <CardContent className="pt-6">
+                      <div className="text-center space-y-4">
+                        <Stethoscope className="h-12 w-12 text-primary mx-auto" />
+                        <h3 className="font-semibold text-lg">Registra tus consultas médicas</h3>
+                        <p className="text-sm text-gray-600">Graba o sube un audio de tu consulta médica para transcribirla y obtener resúmenes personalizados.</p>
+                        <div className="flex justify-center gap-4 pt-2">
+                          <Button 
+                            variant="default" 
+                            onClick={() => setIsRecording(true)}
+                            disabled={isRecording || isUploading}
+                          >
+                            <Stethoscope className="h-4 w-4 mr-2" />
+                            Grabar consulta
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setIsUploading(true)}
+                            disabled={isRecording || isUploading}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Subir audio
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+              <TabsContent value="comprehensive" className="flex-1 overflow-auto p-6 pb-24">
+                <ComprehensiveSummaryView 
+                  notes={notes}
+                  onRegenerateSummary={handleGenerateComprehensiveSummary}
+                  isGenerating={isGeneratingSummary}
+                  comprehensiveSummary={comprehensiveSummary}
+                />
+              </TabsContent>
+            </Tabs>
           )}
         </div>
       </div>
