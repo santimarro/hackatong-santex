@@ -587,7 +587,7 @@ La respuesta debe ser un único documento resumido, bien estructurado, con forma
           )}
           <h1 className="text-xl font-bold text-primary flex items-center">
             <Stethoscope className="h-5 w-5 mr-2" />
-            René
+            Harvey
           </h1>
         </div>
       </header>
