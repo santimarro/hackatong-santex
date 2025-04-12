@@ -18,17 +18,25 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-col h-screen bg-white">
+      {/* Header */}
+      <header className="border-b border-gray-200 bg-white py-4 px-6 flex justify-between items-center">
+        <h1 className="text-xl font-bold text-primary flex items-center">
+          <Stethoscope className="h-5 w-5 mr-2" />
+          Harvey
+        </h1>
+      </header>
+
       {/* Main content */}
       <div className="flex-1 overflow-auto pb-16">
         {/* Welcome banner */}
         <div className="pt-4 px-6">
           <h1 className="text-xl font-bold">Bienvenido Juan Perez</h1>
-          <div className="mt-6 flex justify-center">
-            <div className="w-3/4">
+          <div className="mt-4 flex justify-center">
+            <div className="w-1/3">
               <img 
                 src="/assets/avatar.png" 
                 alt="Avatar" 
-                className="mx-auto"
+                className="mx-auto rounded-full"
                 onError={(e) => {
                   e.currentTarget.src = 'https://via.placeholder.com/150';
                 }}

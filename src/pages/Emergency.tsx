@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, AlertTriangle, Printer } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Printer, Stethoscope } from "lucide-react";
 import BottomNavigation from "@/components/BottomNavigation";
 import QRCode from "react-qr-code";
 
@@ -50,15 +50,18 @@ const Emergency = () => {
 
   return (
     <div className="flex flex-col h-screen bg-white">
-      {/* Cabecera */}
-      <header className="flex items-center px-6 py-4 border-b border-gray-200">
-        <button 
-          className="mr-2" 
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <h1 className="text-xl font-bold">En caso de Emergencia</h1>
+      {/* Header */}
+      <header className="border-b border-gray-200 bg-white py-4 px-6 flex justify-between items-center">
+        <div className="flex items-center">
+          <button className="mr-2" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-xl font-bold text-primary flex items-center">
+            <Stethoscope className="h-5 w-5 mr-2" />
+            Harvey
+          </h1>
+        </div>
+        <h2 className="text-base font-medium">En caso de Emergencia</h2>
       </header>
       
       {/* Contenido principal */}

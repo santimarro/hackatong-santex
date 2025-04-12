@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { ArrowUp, Loader2, Stethoscope } from "lucide-react";
 import BottomNavigation from "@/components/BottomNavigation";
 import { useToast } from "@/hooks/use-toast";
 import { Note } from '@/types/Note';
@@ -175,10 +175,18 @@ Asistente:`;
   return (
     <div className="flex flex-col h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white py-4 px-6">
-        <h1 className="text-xl font-bold text-center">Bienvenido Juan Perez</h1>
-        <h2 className="text-lg font-medium text-center">Chat</h2>
+      <header className="border-b border-gray-200 bg-white py-4 px-6 flex justify-between items-center">
+        <h1 className="text-xl font-bold text-primary flex items-center">
+          <Stethoscope className="h-5 w-5 mr-2" />
+          Harvey
+        </h1>
       </header>
+
+      {/* User info */}
+      <div className="border-b border-gray-200 bg-white py-3 px-6">
+        <h2 className="text-lg font-medium text-center">Bienvenido Juan Perez</h2>
+        <p className="text-sm text-gray-500 text-center">Chat</p>
+      </div>
 
       {/* Chat messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
