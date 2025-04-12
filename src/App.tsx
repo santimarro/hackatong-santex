@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 
 // Original pages
 import Notes from "./pages/Notes";
+
 import NotFound from "./pages/NotFound";
 
 // New pages
