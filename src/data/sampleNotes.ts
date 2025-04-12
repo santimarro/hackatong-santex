@@ -9,7 +9,7 @@ const createDummyBlob = (): Blob => {
 export const sampleNote: Note = {
   id: 'sample-note-1',
   title: 'Primera consulta - Dr. Quintero',
-  date: '2023-06-15T10:30:00Z',
+  date: '2025-12-03T10:30:00Z',
   doctorName: 'Dr. Fernando Quintero',
   specialty: 'Traumatología',
   location: 'Hospital Italiano, Buenos Aires',

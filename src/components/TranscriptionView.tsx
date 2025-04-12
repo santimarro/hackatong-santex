@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Note } from '@/types/Note';
 import { Button } from "@/components/ui/button";
@@ -330,7 +329,7 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
               {specialty && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-500">Especialidad</h4>
-                  <p>{specialty.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  <p>{specialty}</p>
                 </div>
               )}
               
