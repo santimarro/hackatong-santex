@@ -9,6 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Note } from '@/types/Note';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// Use Vite's environment variables
+const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
 interface Message {
   id: string;
   text: string;
@@ -73,15 +76,13 @@ ${note.patientSummary}
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
     
-    // Check if Gemini API key is available
-    const geminiApiKey = localStorage.getItem('geminiApiKey');
+    // Check if Gemini API key is available from environment variables
     if (!geminiApiKey) {
       toast({
-        title: "Falta clave API de Gemini",
-        description: "Por favor configura tu clave API primero",
+        title: "API de Gemini no configurada",
+        description: "La clave de API de Gemini no está configurada en las variables de entorno",
         variant: "destructive",
       });
-      navigate('/setup');
       return;
     }
     

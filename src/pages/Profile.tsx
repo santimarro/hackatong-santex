@@ -90,12 +90,6 @@ const Profile = () => {
               <CardContent className="p-0">
                 <ul className="divide-y divide-gray-100">
                   <li>
-                    <button className="flex items-center w-full p-4 hover:bg-gray-50" onClick={() => navigate('/setup')}>
-                      <Settings className="h-5 w-5 mr-3 text-gray-500" />
-                      <span>Ajustes de la aplicación</span>
-                    </button>
-                  </li>
-                  <li>
                     <button className="flex items-center w-full p-4 hover:bg-gray-50">
                       <Shield className="h-5 w-5 mr-3 text-gray-500" />
                       <span>Privacidad y seguridad</span>

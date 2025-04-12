@@ -18,6 +18,10 @@ import { Note } from '@/types/Note';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// Use Vite's environment variables
+const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const deepgramApiKey = import.meta.env.VITE_DEEPGRAM_API_KEY;
+
 const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
@@ -65,28 +69,25 @@ const Notes = () => {
   }, [isMobile]);
 
   useEffect(() => {
-    const deepgramApiKey = localStorage.getItem('deepgramApiKey');
-    const geminiApiKey = localStorage.getItem('geminiApiKey');
-
     if (!deepgramApiKey || !geminiApiKey) {
       toast({
-        title: "Faltan claves API",
-        description: "Por favor configura tus claves API primero",
+        title: "API keys no configuradas",
+        description: "Las claves API no están configuradas en las variables de entorno",
         variant: "destructive",
       });
-      navigate('/setup');
-    } else {
-      const savedNotes = localStorage.getItem('medicalNotes');
-      if (savedNotes) {
-        try {
-          const parsedNotes = JSON.parse(savedNotes);
-          setNotes(parsedNotes);
-        } catch (e) {
-          console.error("Error parsing saved notes:", e);
-        }
+      return;
+    }
+
+    const savedNotes = localStorage.getItem('medicalNotes');
+    if (savedNotes) {
+      try {
+        const parsedNotes = JSON.parse(savedNotes);
+        setNotes(parsedNotes);
+      } catch (e) {
+        console.error("Error parsing saved notes:", e);
       }
     }
-  }, [navigate, toast]);
+  }, [toast]);
 
   useEffect(() => {
     if (notes.length > 0) {
@@ -198,9 +199,8 @@ const Notes = () => {
   };
 
   const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
-    const deepgramApiKey = localStorage.getItem('deepgramApiKey');
     if (!deepgramApiKey) {
-      throw new Error("Deepgram API key not found");
+      throw new Error("Deepgram API key not configured in environment variables");
     }
 
     const buffer = await audioBlob.arrayBuffer();
@@ -225,9 +225,8 @@ const Notes = () => {
   };
 
   const generatePatientSummary = async (text: string): Promise<string> => {
-    const geminiApiKey = localStorage.getItem('geminiApiKey');
     if (!geminiApiKey) {
-      throw new Error("Gemini API key not found");
+      throw new Error("Gemini API key not configured in environment variables");
     }
 
     const patientPrompt = localStorage.getItem('patientPrompt') || 
@@ -269,9 +268,8 @@ Usa lenguaje simple, evita jerga médica, y organiza la información en seccione
   };
 
   const generateMedicalSummary = async (text: string): Promise<string> => {
-    const geminiApiKey = localStorage.getItem('geminiApiKey');
     if (!geminiApiKey) {
-      throw new Error("Gemini API key not found");
+      throw new Error("Gemini API key not configured in environment variables");
     }
 
     const medicalPrompt = localStorage.getItem('medicalPrompt') || 
@@ -309,9 +307,8 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
   };
 
   const generateComprehensiveSummary = async (selectedSpecialty: string | null, selectedNoteIds: string[]): Promise<string> => {
-    const geminiApiKey = localStorage.getItem('geminiApiKey');
     if (!geminiApiKey) {
-      throw new Error("Gemini API key not found");
+      throw new Error("Gemini API key not configured in environment variables");
     }
 
     // Get selected notes
@@ -545,12 +542,6 @@ La respuesta debe ser un único documento resumido, bien estructurado, con forma
             <Stethoscope className="h-5 w-5 mr-2" />
             MediNote
           </h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/setup')}>
-            <Settings className="h-4 w-4 mr-1" />
-            Ajustes
-          </Button>
         </div>
       </header>
 
