@@ -130,7 +130,7 @@ export const dataCache = {
    * Removes oldest entries from the cache
    * @param count Number of entries to remove
    */
-  private purgeOldestEntries(count: number): void {
+  purgeOldestEntries(count: number): void {
     try {
       const entries = Object.entries(memoryCache);
       
