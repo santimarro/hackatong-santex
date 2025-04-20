@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Copy, Edit, Save, Play, Pause, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 interface TranscriptionViewProps {
   note: Note;
@@ -33,20 +34,62 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
   const audioRef = React.useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
 
-  // Create object URL when component mounts or when note changes
+  // Create object URL or fetch from Supabase when component mounts or when note changes
   useEffect(() => {
-    // Check if audioBlob exists and is valid before creating an object URL
-    if (note.audioBlob && note.audioBlob instanceof Blob && note.audioBlob.size > 0) {
-      const url = URL.createObjectURL(note.audioBlob);
-      setAudioUrl(url);
-      
-      // Clean up the URL when component unmounts
-      return () => {
-        if (url) URL.revokeObjectURL(url);
-      };
-    } else {
-      console.warn("Audio blob inválido o faltante para la nota:", note.id);
-    }
+    const fetchAudioFromSupabase = async () => {
+      try {
+        // Check if audioBlob exists and is valid before creating an object URL
+        if (note.audioBlob && note.audioBlob instanceof Blob && note.audioBlob.size > 0) {
+          const url = URL.createObjectURL(note.audioBlob);
+          setAudioUrl(url);
+          
+          // Clean up the URL when component unmounts
+          return () => {
+            if (url) URL.revokeObjectURL(url);
+          };
+        } else {
+          // Try to fetch from Supabase
+          const { data: consultation } = await supabase
+            .from('consultations')
+            .select('audio_file_path')
+            .eq('id', note.id)
+            .single();
+            
+          if (consultation?.audio_file_path) {
+            const { data } = await supabase.storage
+              .from('audio')
+              .createSignedUrl(consultation.audio_file_path, 3600);
+              
+            if (data?.signedUrl) {
+              setAudioUrl(data.signedUrl);
+              return;
+            }
+          }
+            
+          // If no direct path found, try listing files
+          const { data: files } = await supabase.storage
+            .from('audio')
+            .list(`${note.id}`);
+              
+          if (files && files.length > 0) {
+            const { data } = await supabase.storage
+              .from('audio')
+              .createSignedUrl(`${note.id}/${files[0].name}`, 3600);
+                
+            if (data?.signedUrl) {
+              setAudioUrl(data.signedUrl);
+              return;
+            }
+          }
+          
+          console.warn("No se pudo encontrar audio para la nota:", note.id);
+        }
+      } catch (error) {
+        console.error("Error al obtener audio:", error);
+      }
+    };
+    
+    fetchAudioFromSupabase();
   }, [note]);
 
   const handleSave = () => {

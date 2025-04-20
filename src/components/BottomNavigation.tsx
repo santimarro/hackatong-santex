@@ -26,7 +26,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ className = '' }) =
                     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="text-xs">Inicio</span>
+          <span className="text-xs">Home</span>
         </button>
         
         <button 
@@ -56,19 +56,19 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ className = '' }) =
                     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="text-xs">Consultas</span>
+          <span className="text-xs">Consultations</span>
         </button>
         
         <button 
-          className={`flex flex-col items-center justify-center space-y-1 ${isActive('/emergency') ? 'text-primary' : ''}`}
-          onClick={() => navigate('/emergency')}
+          className={`flex flex-col items-center justify-center space-y-1 ${isActive('/reminders') ? 'text-primary' : ''}`}
+          onClick={() => navigate('/reminders')}
         >
-          <div className={`p-1 rounded-full ${isActive('/emergency') ? 'bg-primary-light' : ''}`}>
+          <div className={`p-1 rounded-full ${isActive('/reminders') ? 'bg-primary-light' : ''}`}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M10 2H14L17.5 11H13L14.5 19L5 11H10V2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="text-xs">QRs</span>
+          <span className="text-xs">Reminders</span>
         </button>
         
         <button 
@@ -81,7 +81,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ className = '' }) =
                     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="text-xs">Perfil</span>
+          <span className="text-xs">Profile</span>
         </button>
       </div>
     </div>

@@ -3,88 +3,88 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Stethoscope, Upload, Settings, Plus, Loader2, Share, Menu, X, ArrowLeft, Calendar, Clock, MapPin, FileText } from "lucide-react";
-import NotesList from '@/components/NotesList';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Stethoscope, Upload, Plus, Loader2, Calendar, Clock, MapPin, FileText, ChevronRight } from "lucide-react";
 import AudioRecorder from '@/components/AudioRecorder';
 import AudioUploader from '@/components/AudioUploader';
-import TranscriptionView from '@/components/TranscriptionView';
-import PatientSummaryView from '@/components/PatientSummaryView';
-import MedicalSummaryView from '@/components/MedicalSummaryView';
 import ComprehensiveSummaryView from '@/components/ComprehensiveSummaryView';
 import BottomNavigation from '@/components/BottomNavigation';
-import { Note } from '@/types/Note';
+import { Note, Consultation, consultationToNote } from '@/types/Note';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { sampleNote } from '@/data/sampleNotes';
+import { useAuth } from '@/lib/auth-context';
+import { getConsultation, uploadConsultationAudio, createTranscription, createSummary, updateConsultation } from '@/lib/consultation-service';
+import { format, formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 // Use Vite's environment variables
 const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const deepgramApiKey = import.meta.env.VITE_DEEPGRAM_API_KEY;
 
 // Define prompts as module-level constants
-const DEFAULT_PATIENT_PROMPT = `Crea un resumen médico amigable para el paciente a partir de la transcripción de la consulta médica.
+const DEFAULT_PATIENT_PROMPT = `Create a patient-friendly medical summary based on the transcription of the medical consultation.
 
-IMPORTANTE: Debes incluir ÚNICAMENTE información que esté explícitamente mencionada en la transcripción. NO agregues:
-- Explicaciones adicionales que el médico no haya proporcionado
-- Recomendaciones que no fueron mencionadas
-- Interpretaciones o razonamientos que no estén presentes en la consulta original
-- Información sobre signos de alerta, a menos que el médico los haya mencionado específicamente
+IMPORTANT: You should include ONLY information that is explicitly mentioned in the transcription. DO NOT add:
+- Additional explanations that the doctor did not provide
+- Recommendations that were not mentioned
+- Interpretations or reasoning that are not present in the original consultation
+- Information about warning signs, unless the doctor specifically mentioned them
 
-Tu tarea es:
-1. Extraer y organizar la información proporcionada directamente por el médico en la consulta
-2. Presentarla en lenguaje simple y accesible para el paciente
-3. Mantener la fidelidad absoluta al contenido original de la transcripción
+Your task is to:
+1. Extract and organize the information provided directly by the doctor in the consultation
+2. Present it in simple and accessible language for the patient
+3. Maintain absolute fidelity to the original content of the transcription
 
-Si el médico no explica algo en detalle, NO proporciones explicaciones adicionales.
+If the doctor does not explain something in detail, DO NOT provide additional explanations.
 
-Organiza la información en secciones claras según lo que se haya discutido en la consulta.`;
+Organize the information in clear sections according to what was discussed in the consultation.`;
 
-const DEFAULT_MEDICAL_PROMPT = `Genera un resumen clínico profesional en formato SOAP a partir de la transcripción de la consulta médica.
-IMPORTANTE: Incluye ÚNICAMENTE información que esté explícitamente mencionada en la transcripción.
+const DEFAULT_MEDICAL_PROMPT = `Generate a professional clinical summary in SOAP format based on the transcription of the medical consultation.
+IMPORTANT: Include ONLY information that is explicitly mentioned in the transcription.
 
-Estructura el resumen usando el formato SOAP:
-- S (Subjetivo): Información proporcionada por el paciente, síntomas, quejas y antecedentes mencionados
-- O (Objetivo): Hallazgos del examen físico y resultados de pruebas mencionados en la transcripción
-- A (Análisis/Evaluación): Diagnóstico o evaluación mencionada por el médico, sin añadir interpretaciones adicionales
-- P (Plan): Plan de tratamiento y recomendaciones explícitamente mencionadas por el médico
+Structure the summary using the SOAP format:
+- S (Subjective): Information provided by the patient, symptoms, complaints, and history mentioned
+- O (Objective): Physical examination findings and test results mentioned in the transcription
+- A (Analysis/Assessment): Diagnosis or assessment mentioned by the doctor, without adding additional interpretations
+- P (Plan): Treatment plan and recommendations explicitly mentioned by the doctor
 
-Utiliza terminología médica estándar y mantén absoluta fidelidad al contenido de la transcripción.`;
+Use standard medical terminology and maintain absolute fidelity to the content of the transcription.`;
 
-const DEFAULT_AUGMENTED_MEDICAL_PROMPT = `Actúa como un asistente médico experto que ofrece una segunda opinión basada en la transcripción de una consulta médica.
+const DEFAULT_AUGMENTED_MEDICAL_PROMPT = `Act as an expert medical assistant offering a second opinion based on the transcription of a medical consultation.
 
-Tu objetivo es ayudar al médico tratante con:
-1. Posibles diagnósticos diferenciales que podrían considerarse basados en los síntomas y hallazgos
-2. Sugerencias de pruebas diagnósticas adicionales que podrían ser relevantes
-3. Opciones de tratamiento alternativas o complementarias basadas en la práctica médica actual
-4. Referencias a guías clínicas o evidencia científica reciente relevante para el caso
-5. Consideraciones especiales que podrían haberse pasado por alto
-6. Posibles interacciones medicamentosas o contraindicaciones
+Your goal is to help the treating physician with:
+1. Possible differential diagnoses that could be considered based on the symptoms and findings
+2. Suggestions for additional diagnostic tests that might be relevant
+3. Alternative or complementary treatment options based on current medical practice
+4. References to clinical guidelines or recent scientific evidence relevant to the case
+5. Special considerations that might have been overlooked
+6. Possible drug interactions or contraindications
 
-Puedes incluir tu razonamiento clínico y explicaciones detalladas para apoyar tus sugerencias.
-Organiza tu respuesta en secciones claras y utiliza lenguaje profesional médico.
+You may include your clinical reasoning and detailed explanations to support your suggestions.
+Organize your response in clear sections and use professional medical language.
 
-NOTA: Esta segunda opinión es solo informativa y no reemplaza el juicio clínico del médico tratante.`;
+NOTE: This second opinion is for informational purposes only and does not replace the treating physician's clinical judgment.`;
 
 const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeTab, setActiveTab] = useState("transcription");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isLoadingNotes, setIsLoadingNotes] = useState(true);
+  const [isSummarySheetOpen, setIsSummarySheetOpen] = useState(false);
   const [comprehensiveSummary, setComprehensiveSummary] = useState<string>("");
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [consultation, setConsultation] = useState<Consultation | null>(null);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   
-  // Parse the appointment ID from the query string if coming from appointment detail
+  // Parse the consultation ID from the query string
   const queryParams = new URLSearchParams(location.search);
-  const appointmentId = queryParams.get('appointment');
+  const consultationId = queryParams.get('consultation');
   
   // If redirected from consultation/new with preserveSearch state, include the original search params
   useEffect(() => {
@@ -95,56 +95,105 @@ const Notes = () => {
     }
   }, [location, navigate]);
   
-  // Datos de cita de ejemplo cuando se viene desde el detalle de una cita
-  const appointmentData = appointmentId ? {
-    id: appointmentId,
-    doctorName: "Fernando Quinteros",
-    specialty: "Traumatología",
-    institution: "Hospital Italiano",
-    date: new Date(),
-    time: "11:00 AM",
-    location: "Consultorio 305, Piso 3",
-    notes: "Primera consulta por dolor en la rodilla derecha."
-  } : null;
-
+  // Fetch consultation data if consultationId is provided
   useEffect(() => {
-    if (isMobile) {
-      setIsSidebarOpen(false);
+    if (consultationId && user) {
+      const fetchConsultation = async () => {
+        try {
+          const data = await getConsultation(consultationId);
+          if (data) {
+            setConsultation(data);
+          }
+        } catch (error) {
+          console.error('Error fetching consultation:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load consultation data",
+            variant: "destructive",
+          });
+        }
+      };
+      
+      fetchConsultation();
     }
-  }, [isMobile]);
+  }, [consultationId, user, toast]);
 
   useEffect(() => {
     if (!deepgramApiKey || !geminiApiKey) {
       toast({
-        title: "API keys no configuradas",
-        description: "Las claves API no están configuradas en las variables de entorno",
+        title: "API keys not configured",
+        description: "The API keys are not configured in environment variables",
         variant: "destructive",
       });
       return;
     }
 
-    // Load saved notes from localStorage
-    const savedNotes = localStorage.getItem('medicalNotes');
-    let parsedNotes: Note[] = [];
-    
-    if (savedNotes) {
+    const fetchConsultations = async () => {
+      setIsLoadingNotes(true);
+      
       try {
-        parsedNotes = JSON.parse(savedNotes);
-      } catch (e) {
-        console.error("Error parsing saved notes:", e);
+        // Only proceed if we have a user
+        if (!user) {
+          // If no user, just show sample note
+          setNotes([sampleNote]);
+          setIsLoadingNotes(false);
+          return;
+        }
+
+        // Import cache-enabled service function
+        const { getUserConsultations, getTranscription, getSummaries } = await import('@/lib/consultation-service');
+        
+        // Fetch consultations using the cached service function
+        const consultations = await getUserConsultations(user.id);
+
+        if (consultations && consultations.length > 0) {
+          // Convert consultations to notes
+          const dbNotes: Note[] = [];
+
+          // Process each consultation
+          for (const consultation of consultations) {
+            try {
+              // Get the transcription using cached service
+              const transcription = await getTranscription(consultation.id);
+
+              // Get the summaries using cached service
+              const summaries = await getSummaries(consultation.id);
+
+              // Convert to Note type
+              const note = consultationToNote(consultation, transcription, summaries || []);
+              dbNotes.push(note);
+            } catch (err) {
+              console.error(`Error processing consultation ${consultation.id}:`, err);
+            }
+          }
+
+          // Add sample note if no consultations were found
+          if (dbNotes.length === 0) {
+            dbNotes.push(sampleNote);
+          }
+
+          setNotes(dbNotes);
+        } else {
+          // If no consultations in database, just show sample note
+          setNotes([sampleNote]);
+        }
+      } catch (error) {
+        console.error('Error fetching consultations:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load consultations",
+          variant: "destructive",
+        });
+        
+        // Fallback to sample note
+        setNotes([sampleNote]);
+      } finally {
+        setIsLoadingNotes(false);
       }
-    }
-    
-    // Check if the sample note already exists in the saved notes
-    const sampleNoteExists = parsedNotes.some(note => note.id === sampleNote.id);
-    
-    // If sample note doesn't exist, add it to the notes array
-    if (!sampleNoteExists) {
-      parsedNotes = [sampleNote, ...parsedNotes];
-    }
-    
-    setNotes(parsedNotes);
-  }, [toast]);
+    };
+
+    fetchConsultations();
+  }, [user, toast, deepgramApiKey, geminiApiKey]);
 
   useEffect(() => {
     if (notes.length > 0) {
@@ -161,39 +210,142 @@ const Notes = () => {
     setIsProcessing(true);
     
     try {
-      const transcript = await transcribeAudio(audioBlob);
+      let consultationData = consultation;
       
-      const patientSummary = await generatePatientSummary(transcript);
-      const medicalSummary = await generateMedicalSummary(transcript);
-      const augmentedMedicalSummary = await generateAugmentedMedicalSummary(transcript);
-      
-      const title = appointmentData 
-        ? `Consulta ${appointmentData.doctorName} - ${appointmentData.specialty}`
-        : `Consulta ${notes.length + 1}`;
+      // If we're recording for a specific consultation from Supabase
+      if (consultationId && user && consultation) {
+        // First upload the audio file to Supabase
+        const fileName = `${user.id}/${consultationId}/audio-${Date.now()}.webm`;
+        const audioFile = new File([audioBlob], fileName, { type: 'audio/webm' });
         
-      const newNote: Note = {
-        id: Date.now().toString(),
-        title: title,
-        date: new Date().toISOString(),
-        audioBlob: audioBlob,
-        transcription: transcript,
-        patientSummary: patientSummary,
-        medicalSummary: medicalSummary,
-        augmentedMedicalSummary: augmentedMedicalSummary,
-      };
-      
-      setNotes(prev => [newNote, ...prev]);
-      setSelectedNote(newNote);
+        // Upload audio to Supabase
+        const { filePath, error } = await uploadConsultationAudio(consultationId, audioFile, user.id);
+        
+        if (error || !filePath) {
+          throw new Error('Failed to upload audio file');
+        }
+        
+        // Update consultation status
+        await updateConsultation(consultationId, {
+          status: 'transcribing'
+        });
+        
+        // Begin transcription
+        const transcript = await transcribeAudio(audioBlob);
+        
+        // Save transcription to Supabase
+        const transcriptionData = {
+          consultation_id: consultationId,
+          content: transcript,
+          provider: 'deepgram'
+        };
+        
+        const transcriptionResult = await createTranscription(transcriptionData);
+        
+        if (!transcriptionResult) {
+          throw new Error('Failed to save transcription');
+        }
+        
+        // Generate and save summaries
+        const patientSummary = await generatePatientSummary(transcript);
+        const medicalSummary = await generateMedicalSummary(transcript);
+        
+        // Save patient summary
+        const patientSummaryData = {
+          consultation_id: consultationId,
+          type: 'patient',
+          content: patientSummary,
+          provider: 'gemini'
+        };
+        
+        await createSummary(patientSummaryData);
+        
+        // Save medical summary
+        const medicalSummaryData = {
+          consultation_id: consultationId,
+          type: 'medical',
+          content: medicalSummary,
+          provider: 'gemini'
+        };
+        
+        await createSummary(medicalSummaryData);
+        
+        // Generate augmented medical summary
+        const augmentedMedicalSummary = await generateAugmentedMedicalSummary(transcript);
+        
+        // Save augmented medical summary
+        const augmentedSummaryData = {
+          consultation_id: consultationId,
+          type: 'comprehensive',
+          content: augmentedMedicalSummary,
+          provider: 'gemini'
+        };
+        
+        await createSummary(augmentedSummaryData);
+        
+        // Update consultation status
+        await updateConsultation(consultationId, {
+          status: 'completed'
+        });
+        
+        // Get updated consultation data
+        consultationData = await getConsultation(consultationId);
+        setConsultation(consultationData);
+        
+        // Create a Note object for the UI
+        const newNote: Note = {
+          id: consultationId,
+          title: consultationData?.title || 'Medical Consultation',
+          date: consultationData?.created_at || new Date().toISOString(),
+          doctorName: consultationData?.doctor_id ? 'Dr. Provider' : undefined,
+          location: consultationData?.appointment_location,
+          audioBlob: audioBlob,
+          transcription: transcript,
+          patientSummary: patientSummary,
+          medicalSummary: medicalSummary,
+          augmentedMedicalSummary: augmentedMedicalSummary,
+        };
+        
+        setNotes(prev => [newNote, ...prev]);
+        
+        // Navigate to note detail page
+        navigate(`/note/${newNote.id}`);
+      } else {
+        // Handle the legacy flow when not using Supabase
+        const transcript = await transcribeAudio(audioBlob);
+        
+        const patientSummary = await generatePatientSummary(transcript);
+        const medicalSummary = await generateMedicalSummary(transcript);
+        const augmentedMedicalSummary = await generateAugmentedMedicalSummary(transcript);
+        
+        const title = `Consultation ${notes.length + 1}`;
+          
+        const newNote: Note = {
+          id: Date.now().toString(),
+          title: title,
+          date: new Date().toISOString(),
+          audioBlob: audioBlob,
+          transcription: transcript,
+          patientSummary: patientSummary,
+          medicalSummary: medicalSummary,
+          augmentedMedicalSummary: augmentedMedicalSummary,
+        };
+        
+        setNotes(prev => [newNote, ...prev]);
+        
+        // Navigate to note detail page
+        navigate(`/note/${newNote.id}`);
+      }
       
       toast({
-        title: "Éxito",
-        description: "Consulta médica procesada correctamente",
+        title: "Success",
+        description: "Medical consultation processed successfully",
       });
-    } catch (error) {
-      console.error("Error procesando el audio:", error);
+    } catch (error: any) {
+      console.error("Error processing audio:", error);
       toast({
         title: "Error",
-        description: "Error al procesar el audio. Intenta de nuevo.",
+        description: error.message || "Error processing audio. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -207,61 +359,146 @@ const Notes = () => {
     try {
       const audioBlob = new Blob([file], { type: file.type });
       
-      const transcript = await transcribeAudio(audioBlob);
+      let consultationData = consultation;
       
-      const patientSummary = await generatePatientSummary(transcript);
-      const medicalSummary = await generateMedicalSummary(transcript);
-      const augmentedMedicalSummary = await generateAugmentedMedicalSummary(transcript);
-      
-      const title = appointmentData 
-        ? `Consulta ${appointmentData.doctorName} - ${appointmentData.specialty}`
-        : file.name.replace(/\.[^/.]+$/, "") || `Consulta ${notes.length + 1}`;
+      // If we're uploading for a specific consultation from Supabase
+      if (consultationId && user && consultation) {
+        // First upload the audio file to Supabase
+        const fileName = `${user.id}/${consultationId}/audio-${Date.now()}.${file.name.split('.').pop()}`;
         
-      const newNote: Note = {
-        id: Date.now().toString(),
-        title: title,
-        date: new Date().toISOString(),
-        audioBlob: audioBlob,
-        transcription: transcript,
-        patientSummary: patientSummary,
-        medicalSummary: medicalSummary,
-        augmentedMedicalSummary: augmentedMedicalSummary,
-      };
-      
-      setNotes(prev => [newNote, ...prev]);
-      setSelectedNote(newNote);
+        // Upload audio to Supabase
+        const { filePath, error } = await uploadConsultationAudio(consultationId, file, user.id);
+        
+        if (error || !filePath) {
+          throw new Error('Failed to upload audio file');
+        }
+        
+        // Update consultation status
+        await updateConsultation(consultationId, {
+          status: 'transcribing'
+        });
+        
+        // Begin transcription
+        const transcript = await transcribeAudio(audioBlob);
+        
+        // Save transcription to Supabase
+        const transcriptionData = {
+          consultation_id: consultationId,
+          content: transcript,
+          provider: 'deepgram'
+        };
+        
+        const transcriptionResult = await createTranscription(transcriptionData);
+        
+        if (!transcriptionResult) {
+          throw new Error('Failed to save transcription');
+        }
+        
+        // Generate and save summaries
+        const patientSummary = await generatePatientSummary(transcript);
+        const medicalSummary = await generateMedicalSummary(transcript);
+        
+        // Save patient summary
+        const patientSummaryData = {
+          consultation_id: consultationId,
+          type: 'patient',
+          content: patientSummary,
+          provider: 'gemini'
+        };
+        
+        await createSummary(patientSummaryData);
+        
+        // Save medical summary
+        const medicalSummaryData = {
+          consultation_id: consultationId,
+          type: 'medical',
+          content: medicalSummary,
+          provider: 'gemini'
+        };
+        
+        await createSummary(medicalSummaryData);
+        
+        // Generate augmented medical summary
+        const augmentedMedicalSummary = await generateAugmentedMedicalSummary(transcript);
+        
+        // Save augmented medical summary
+        const augmentedSummaryData = {
+          consultation_id: consultationId,
+          type: 'comprehensive',
+          content: augmentedMedicalSummary,
+          provider: 'gemini'
+        };
+        
+        await createSummary(augmentedSummaryData);
+        
+        // Update consultation status
+        await updateConsultation(consultationId, {
+          status: 'completed'
+        });
+        
+        // Get updated consultation data
+        consultationData = await getConsultation(consultationId);
+        setConsultation(consultationData);
+        
+        // Create a Note object for the UI
+        const newNote: Note = {
+          id: consultationId,
+          title: consultationData?.title || file.name.replace(/\.[^/.]+$/, "") || 'Medical Consultation',
+          date: consultationData?.created_at || new Date().toISOString(),
+          doctorName: consultationData?.doctor_id ? 'Dr. Provider' : undefined,
+          location: consultationData?.appointment_location,
+          audioBlob: audioBlob,
+          transcription: transcript,
+          patientSummary: patientSummary,
+          medicalSummary: medicalSummary,
+          augmentedMedicalSummary: augmentedMedicalSummary,
+        };
+        
+        setNotes(prev => [newNote, ...prev]);
+        
+        // Navigate to note detail page
+        navigate(`/note/${newNote.id}`);
+      } else {
+        // Handle the legacy flow when not using Supabase
+        const transcript = await transcribeAudio(audioBlob);
+        
+        const patientSummary = await generatePatientSummary(transcript);
+        const medicalSummary = await generateMedicalSummary(transcript);
+        const augmentedMedicalSummary = await generateAugmentedMedicalSummary(transcript);
+        
+        const title = file.name.replace(/\.[^/.]+$/, "") || `Consultation ${notes.length + 1}`;
+          
+        const newNote: Note = {
+          id: Date.now().toString(),
+          title: title,
+          date: new Date().toISOString(),
+          audioBlob: audioBlob,
+          transcription: transcript,
+          patientSummary: patientSummary,
+          medicalSummary: medicalSummary,
+          augmentedMedicalSummary: augmentedMedicalSummary,
+        };
+        
+        setNotes(prev => [newNote, ...prev]);
+        
+        // Navigate to note detail page
+        navigate(`/note/${newNote.id}`);
+      }
       
       toast({
-        title: "Éxito",
-        description: "Consulta médica procesada correctamente",
+        title: "Success",
+        description: "Medical consultation processed successfully",
       });
-    } catch (error) {
-      console.error("Error procesando el audio:", error);
+    } catch (error: any) {
+      console.error("Error processing audio:", error);
       toast({
         title: "Error",
-        description: "Error al procesar el audio. Intenta de nuevo.",
+        description: error.message || "Error processing audio. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  const handleNoteSelect = (note: Note) => {
-    setSelectedNote(note);
-    if (isMobile) {
-      setIsSidebarOpen(false);
-    }
-  };
-
-  const handleNewNote = () => {
-    setSelectedNote(null);
-    setActiveTab("transcription");
-  };
-
-  const handleUpdateNote = (updatedNote: Note) => {
-    setNotes(notes.map(note => note.id === updatedNote.id ? updatedNote : note));
-    setSelectedNote(updatedNote);
   };
 
   const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
@@ -305,12 +542,12 @@ const Notes = () => {
       
       const prompt = `${patientPrompt}
                 
-      Transcripción de la consulta médica:
+      Medical consultation transcription:
       ${text}`;
       
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      return response.text() || "No se pudo generar un resumen para el paciente.";
+      return response.text() || "Could not generate a patient summary.";
     } catch (error) {
       console.error("Error using Gemini API:", error);
       throw new Error("Failed to generate patient summary");
@@ -332,12 +569,12 @@ const Notes = () => {
       
       const prompt = `${medicalPrompt}
                 
-      Transcripción de la consulta médica:
+      Medical consultation transcription:
       ${text}`;
       
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      return response.text() || "No se pudo generar un resumen médico.";
+      return response.text() || "Could not generate a medical summary.";
     } catch (error) {
       console.error("Error using Gemini API:", error);
       throw new Error("Failed to generate medical summary");
@@ -359,12 +596,12 @@ const Notes = () => {
       
       const prompt = `${augmentedMedicalPrompt}
                 
-      Transcripción de la consulta médica:
+      Medical consultation transcription:
       ${text}`;
       
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      return response.text() || "No se pudo generar una consulta aumentada.";
+      return response.text() || "Could not generate an augmented consultation.";
     } catch (error) {
       console.error("Error using Gemini API:", error);
       throw new Error("Failed to generate augmented medical summary");
@@ -380,14 +617,14 @@ const Notes = () => {
     const filteredNotes = notes.filter(note => selectedNoteIds.includes(note.id));
     
     // Include specialty in the system prompt if one is selected
-    const systemPrompt = `Eres un experto médico especializado en resumir historias clínicas de pacientes${selectedSpecialty ? ` con enfoque en ${selectedSpecialty}` : ''}.`;
+    const systemPrompt = `You are a medical expert specializing in summarizing patient clinical histories${selectedSpecialty ? ` with a focus on ${selectedSpecialty}` : ''}.`;
     
     // Create an array of all medical summaries with metadata
     const summaries = filteredNotes.map(note => {
       // Extract specialization and date
-      const specialtyText = note.specialty ? `Especialidad: ${note.specialty}` : '';
-      const dateText = `Fecha: ${new Date(note.date).toLocaleDateString()}`;
-      const titleText = `Consulta: ${note.title}`;
+      const specialtyText = note.specialty ? `Specialty: ${note.specialty}` : '';
+      const dateText = `Date: ${new Date(note.date).toLocaleDateString()}`;
+      const titleText = `Consultation: ${note.title}`;
       
       // Return formatted summary with metadata
       return `
@@ -400,26 +637,26 @@ ${note.medicalSummary}
     }).join("\n\n");
 
     // Format the comprehensive prompt similar to the Python example
-    const comprehensivePrompt = `Aquí hay resúmenes de varias consultas médicas del paciente:
+    const comprehensivePrompt = `Here are summaries of various medical consultations for the patient:
 
-<resúmenes>
+<summaries>
 ${summaries}
-</resúmenes>
+</summaries>
 
-Por favor, realiza lo siguiente:
-1. Lee detalladamente los resúmenes proporcionados de las diversas consultas médicas.
-2. Combina los resúmenes en una única narrativa coherente y completa del historial médico del paciente.${selectedSpecialty ? `\n3. Enfócate principalmente en la información relacionada con ${selectedSpecialty}.` : ''}
-3. La narrativa debe proporcionar una visión longitudinal de la actividad clínica del paciente basada en las diversas consultas.
-4. Destaca cualquier hallazgo anormal en pruebas o resultados de laboratorio si están disponibles.
-5. No inferir condiciones que no se mencionen explícitamente.
-6. Excluir condiciones descartadas o descartadas.
-7. Organiza la información cronológicamente cuando sea posible.
-8. Asegúrate de usar el formato markdown adecuadamente para los encabezados, listas y párrafos.
-9. Usa encabezados de nivel 2 (##) para las secciones principales y nivel 3 (###) para subsecciones.
-10. Utiliza listas con viñetas (*) para enumerar elementos relacionados.
-11. Agrega espacio después de los símbolos de marcado (# para encabezados, * para listas) para asegurar el formato correcto.
+Please do the following:
+1. Carefully read the provided summaries from the various medical consultations.
+2. Combine the summaries into a single coherent and comprehensive narrative of the patient's medical history.${selectedSpecialty ? `\n3. Focus primarily on information related to ${selectedSpecialty}.` : ''}
+3. The narrative should provide a longitudinal view of the patient's clinical activity based on the various consultations.
+4. Highlight any abnormal findings in tests or laboratory results if available.
+5. Do not infer conditions that are not explicitly mentioned.
+6. Exclude ruled-out or dismissed conditions.
+7. Organize the information chronologically when possible.
+8. Make sure to use proper markdown formatting for headings, lists, and paragraphs.
+9. Use level 2 headings (##) for main sections and level 3 (###) for subsections.
+10. Use bullet lists (*) to enumerate related items.
+11. Add space after markdown symbols (# for headings, * for lists) to ensure proper formatting.
 
-La respuesta debe ser un único documento resumido, bien estructurado, con formato markdown, que un profesional médico pueda usar para entender rápidamente el historial completo del paciente.
+The response should be a single summarized, well-structured document with markdown formatting that a medical professional can use to quickly understand the patient's complete history.
 `;
 
     try {
@@ -436,7 +673,7 @@ La respuesta debe ser un único documento resumido, bien estructurado, con forma
       
       const result = await model.generateContent(comprehensivePrompt);
       const response = await result.response;
-      return response.text() || "No se pudo generar un resumen médico integral.";
+      return response.text() || "Could not generate a comprehensive medical summary.";
     } catch (error) {
       console.error("Error using Gemini API:", error);
       throw new Error("Failed to generate comprehensive medical summary");
@@ -451,14 +688,14 @@ La respuesta debe ser un único documento resumido, bien estructurado, con forma
       setComprehensiveSummary(summary);
       
       toast({
-        title: "Éxito",
-        description: "Resumen médico integral generado correctamente",
+        title: "Success",
+        description: "Comprehensive medical summary generated successfully",
       });
     } catch (error) {
-      console.error("Error generando resumen integral:", error);
+      console.error("Error generating comprehensive summary:", error);
       toast({
         title: "Error",
-        description: "Error al generar el resumen médico integral",
+        description: "Error generating the comprehensive medical summary",
         variant: "destructive",
       });
     } finally {
@@ -466,91 +703,75 @@ La respuesta debe ser un único documento resumido, bien estructurado, con forma
     }
   };
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+  // Format date and time from ISO string
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return { date: 'N/A', time: 'N/A' };
+    
+    const date = new Date(dateString);
+    return {
+      date: format(date, 'PPP'), // e.g., April 18, 2025
+      time: format(date, 'h:mm a') // e.g., 11:00 AM
+    };
   };
 
   // Render based on context
-  if (appointmentData && !selectedNote && !isProcessing) {
+  if (consultation && !isProcessing) {
+    // Extract the formatted date and time
+    const { date, time } = formatDateTime(consultation.appointment_date);
+    
     // Render the consultation view when coming from appointment
     return (
       <div className="flex flex-col h-screen bg-white">
         {/* Header */}
-        <header className="flex items-center px-6 py-4 border-b border-gray-200">
-          <button 
-            className="mr-2" 
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-xl font-bold">Consulta - Datos Iniciales</h1>
-        </header>
+        <div className="flex items-center px-6 py-4 border-b border-gray-200">
+          <h1 className="text-xl font-bold">Consultation - Initial Data</h1>
+        </div>
         
         {/* Main content */}
         <div className="flex-1 overflow-auto py-6 px-6">
           <div className="space-y-6">
-            {/* Doctor info */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Médico</label>
-                <input 
-                  type="text" 
-                  className="w-full p-2 border border-gray-300 rounded-md" 
-                  value={appointmentData.doctorName} 
-                  readOnly 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Especialidad</label>
-                <input 
-                  type="text" 
-                  className="w-full p-2 border border-gray-300 rounded-md" 
-                  value={appointmentData.specialty} 
-                  readOnly 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Institución</label>
-                <input 
-                  type="text" 
-                  className="w-full p-2 border border-gray-300 rounded-md" 
-                  value={appointmentData.institution} 
-                  readOnly 
-                />
-              </div>
+            {/* Title and basic info */}
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold">{consultation.title || "Medical Consultation"}</h2>
             </div>
             
             {/* Appointment details */}
             <Card className="bg-gray-50">
               <CardContent className="p-4 space-y-3">
-                <div className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2 text-gray-500" />
-                  <span>{appointmentData.date.toLocaleDateString()}</span>
-                </div>
+                {consultation.appointment_date && (
+                  <>
+                    <div className="flex items-center">
+                      <Calendar className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>{date}</span>
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <Clock className="h-5 w-5 mr-2 text-gray-500" />
+                      <span>{time}</span>
+                    </div>
+                  </>
+                )}
                 
-                <div className="flex items-center">
-                  <Clock className="h-5 w-5 mr-2 text-gray-500" />
-                  <span>{appointmentData.time}</span>
-                </div>
-                
-                <div className="flex items-center">
-                  <MapPin className="h-5 w-5 mr-2 text-gray-500" />
-                  <span>{appointmentData.location}</span>
-                </div>
+                {consultation.appointment_location && (
+                  <div className="flex items-start">
+                    <MapPin className="h-5 w-5 mr-2 text-gray-500 mt-0.5" />
+                    <span>{consultation.appointment_location}</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
             
             {/* Notes */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Notas</label>
-              <textarea 
-                className="w-full p-2 border border-gray-300 rounded-md min-h-[100px]" 
-                value={appointmentData.notes}
-                readOnly
-              />
-            </div>
+            {consultation.custom_notes && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Notes</label>
+                <div className="p-3 border border-gray-200 rounded-md bg-white min-h-[100px]">
+                  {consultation.custom_notes.split('\n').map((line, i) => (
+                    <p key={i} className="mb-2">{line}</p>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         
@@ -562,7 +783,7 @@ La respuesta debe ser un único documento resumido, bien estructurado, con forma
               onClick={() => setIsRecording(true)}
             >
               <Stethoscope className="h-4 w-4 mr-2" />
-              Grabar Consulta
+              Record Consultation
             </Button>
             
             <Button 
@@ -571,7 +792,7 @@ La respuesta debe ser un único documento resumido, bien estructurado, con forma
               onClick={() => setIsUploading(true)}
             >
               <Upload className="h-4 w-4 mr-2" />
-              Subir Audio
+              Upload Audio
             </Button>
           </div>
         </div>
@@ -593,143 +814,117 @@ La respuesta debe ser un único documento resumido, bien estructurado, con forma
     );
   }
 
-  // Regular Notes page rendering
+  // Mobile-friendly Notes page rendering
   return (
     <div className="flex flex-col h-screen bg-white">
-      <header className="border-b border-gray-200 bg-white py-4 px-6 flex justify-between items-center">
-        <div className="flex items-center">
-          {isMobile && (
-            <Button variant="ghost" size="sm" onClick={toggleSidebar} className="mr-2">
-              {isSidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            </Button>
-          )}
-          <h1 className="text-xl font-bold text-primary flex items-center">
-            <Stethoscope className="h-5 w-5 mr-2" />
-            Harvey
-          </h1>
-        </div>
-      </header>
+      <div className="border-b border-gray-200 bg-white py-4 px-6 flex justify-between items-center">
+        <h1 className="text-xl font-bold text-primary">My Consultations</h1>
+        <Button 
+          variant="default" 
+          size="sm" 
+          onClick={() => setIsSummarySheetOpen(true)}
+          disabled={notes.length === 0}
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Summary
+        </Button>
+      </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {(isSidebarOpen || !isMobile) && (
-          <div className={`${isMobile ? 'absolute inset-0 z-50 bg-white' : 'relative'} w-64 border-r border-gray-200 bg-gray-50 flex flex-col`}>
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="font-medium">Mis consultas</h2>
-              <Button variant="ghost" size="sm" onClick={handleNewNote}>
-                <Plus className="h-4 w-4" />
-              </Button>
+      <div className="flex-1 overflow-auto pb-20">
+        {isProcessing ? (
+          <div className="flex flex-1 items-center justify-center p-6">
+            <div className="text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-gray-500">Processing your medical consultation...</p>
+              <p className="text-xs text-gray-400 mt-2">This may take a minute</p>
             </div>
-            <ScrollArea className="flex-1">
-              <NotesList notes={notes} selectedNote={selectedNote} onSelectNote={handleNoteSelect} />
-            </ScrollArea>
-            <div className="p-4 flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-1" 
-                onClick={() => setIsRecording(true)}
-                disabled={isRecording || isUploading || isProcessing}
-              >
-                <Stethoscope className="h-4 w-4 mr-1" />
-                Grabar
+          </div>
+        ) : isLoadingNotes ? (
+          <div className="flex flex-1 items-center justify-center p-6">
+            <div className="text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-gray-500">Loading your consultations...</p>
+            </div>
+          </div>
+        ) : notes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+            <FileText className="h-16 w-16 text-gray-300 mb-4" />
+            <h3 className="text-xl font-medium text-gray-700 mb-2">No consultations yet</h3>
+            <p className="text-gray-500 mb-6">Record or upload your medical consultations to see them here</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button onClick={() => setIsRecording(true)}>
+                <Stethoscope className="h-4 w-4 mr-2" />
+                Record Consultation
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-1" 
-                onClick={() => setIsUploading(true)}
-                disabled={isRecording || isUploading || isProcessing}
-              >
-                <Upload className="h-4 w-4 mr-1" />
-                Subir
+              <Button variant="outline" onClick={() => setIsUploading(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Audio
               </Button>
             </div>
           </div>
-        )}
-
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {isProcessing ? (
-            <div className="flex flex-1 items-center justify-center pb-24">
-              <div className="text-center">
-                <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-                <p className="text-gray-500">Procesando tu consulta médica...</p>
-                <p className="text-xs text-gray-400 mt-2">Esto puede tardar un minuto</p>
-              </div>
-            </div>
-          ) : selectedNote ? (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-              <div className="border-b border-gray-200 px-6 py-2">
-                <TabsList className="grid w-full max-w-md grid-cols-3">
-                  <TabsTrigger value="transcription">Detalles</TabsTrigger>
-                  <TabsTrigger value="patientSummary">Resumen Paciente</TabsTrigger>
-                  <TabsTrigger value="medicalSummary">Resumen Médico</TabsTrigger>
-                </TabsList>
-              </div>
-              <TabsContent value="transcription" className="flex-1 overflow-auto p-6 pb-24">
-                <TranscriptionView note={selectedNote} onUpdateNote={handleUpdateNote} />
-              </TabsContent>
-              <TabsContent value="patientSummary" className="flex-1 overflow-auto p-6 pb-24">
-                <PatientSummaryView note={selectedNote} />
-              </TabsContent>
-              <TabsContent value="medicalSummary" className="flex-1 overflow-auto p-6 pb-24">
-                <MedicalSummaryView note={selectedNote} />
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <Tabs defaultValue="new" className="flex-1 flex flex-col overflow-hidden">
-              <div className="border-b border-gray-200 px-6 py-2">
-                <TabsList className="grid w-full max-w-md grid-cols-2">
-                  <TabsTrigger value="new">Nueva consulta</TabsTrigger>
-                  <TabsTrigger value="comprehensive" disabled={notes.length === 0}>
-                    <FileText className="h-4 w-4 mr-1" />
-                    Resumen integral
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-              <TabsContent value="new" className="flex-1 overflow-auto pb-24">
-                <div className="flex-1 flex items-center justify-center">
-                  <Card className="w-96 bg-primary-light border-none">
-                    <CardContent className="pt-6">
-                      <div className="text-center space-y-4">
-                        <Stethoscope className="h-12 w-12 text-primary mx-auto" />
-                        <h3 className="font-semibold text-lg">Registra tus consultas médicas</h3>
-                        <p className="text-sm text-gray-600">Graba o sube un audio de tu consulta médica para transcribirla y obtener resúmenes personalizados.</p>
-                        <div className="flex justify-center gap-4 pt-2">
-                          <Button 
-                            variant="default" 
-                            onClick={() => setIsRecording(true)}
-                            disabled={isRecording || isUploading}
-                          >
-                            <Stethoscope className="h-4 w-4 mr-2" />
-                            Grabar consulta
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            onClick={() => setIsUploading(true)}
-                            disabled={isRecording || isUploading}
-                          >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Subir audio
-                          </Button>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {notes.map((note) => (
+              <Card
+                key={note.id}
+                className="rounded-none border-x-0 border-t-0 last:border-b-0 cursor-pointer hover:bg-gray-50"
+                onClick={() => navigate(`/note/${note.id}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-start">
+                        <div className="mr-3 mt-1">
+                          <Stethoscope className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-medium">{note.title}</h3>
+                          
+                          {note.doctorName && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              Dr. {note.doctorName}
+                            </p>
+                          )}
+                          
+                          {note.specialty && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              {note.specialty}
+                            </p>
+                          )}
+                          
+                          <p className="text-xs text-gray-400 mt-1">
+                            {formatDistanceToNow(new Date(note.date), { addSuffix: true, locale: es })}
+                          </p>
+                          
+                          {note.diagnosis && (
+                            <p className="text-sm text-gray-600 mt-2">
+                              <span className="font-medium">Diagnosis:</span> {note.diagnosis}
+                            </p>
+                          )}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-              <TabsContent value="comprehensive" className="flex-1 overflow-auto p-6 pb-24">
-                <ComprehensiveSummaryView 
-                  notes={notes}
-                  onRegenerateSummary={handleGenerateComprehensiveSummary}
-                  isGenerating={isGeneratingSummary}
-                  comprehensiveSummary={comprehensiveSummary}
-                />
-              </TabsContent>
-            </Tabs>
-          )}
-        </div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Floating action button for new consultation */}
+      <div className="fixed right-6 bottom-20">
+        <Button
+          onClick={() => setIsRecording(true)}
+          className="h-14 w-14 rounded-full shadow-lg"
+          disabled={isProcessing}
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      </div>
+
+      {/* Audio recorder and uploader */}
       <AudioRecorder 
         isOpen={isRecording} 
         onClose={() => setIsRecording(false)} 
@@ -741,6 +936,23 @@ La respuesta debe ser un único documento resumido, bien estructurado, con forma
         onClose={() => setIsUploading(false)} 
         onFileUpload={handleFileUpload} 
       />
+
+      {/* Comprehensive Summary Sheet */}
+      <Sheet open={isSummarySheetOpen} onOpenChange={setIsSummarySheetOpen}>
+        <SheetContent side="bottom" className="h-[85vh] sm:max-w-xl sm:h-screen">
+          <SheetHeader>
+            <SheetTitle>Comprehensive Summary</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6 overflow-y-auto h-[calc(100%-4rem)]">
+            <ComprehensiveSummaryView 
+              notes={notes}
+              onRegenerateSummary={handleGenerateComprehensiveSummary}
+              isGenerating={isGeneratingSummary}
+              comprehensiveSummary={comprehensiveSummary}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <BottomNavigation />
     </div>

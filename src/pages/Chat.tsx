@@ -26,7 +26,7 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Hola Juan, ¿en qué puedo ayudarte hoy?',
+      text: 'Hello Juan, how can I help you today?',
       sender: 'system',
       timestamp: new Date()
     }
@@ -49,7 +49,7 @@ const Chat = () => {
 
   // Format consultation summaries for context
   const formatConsultationSummaries = (): string => {
-    if (notes.length === 0) return "No hay consultas médicas previas registradas.";
+    if (notes.length === 0) return "No medical consultations have been registered yet.";
     
     // Sort notes from newest to oldest
     const sortedNotes = [...notes].sort((a, b) => 
@@ -59,15 +59,15 @@ const Chat = () => {
     return sortedNotes.map(note => {
       return `
 ------- CONSULTA MÉDICA ${note.date} -------
-Doctor: ${note.doctorName || "No especificado"}
-Especialidad: ${note.specialty || "No especificada"}
-Diagnóstico: ${note.diagnosis || "No especificado"}
-Lugar: ${note.location || "No especificado"}
+Doctor: ${note.doctorName || "Not specified"}
+Specialty: ${note.specialty || "Not specified"}
+Diagnosis: ${note.diagnosis || "Not specified"}
+Location: ${note.location || "Not specified"}
 
-RESUMEN MÉDICO:
+MEDICAL SUMMARY:
 ${note.medicalSummary}
 
-RESUMEN PARA PACIENTE:
+PATIENT SUMMARY:
 ${note.patientSummary}
       `;
     }).join("\n\n");
@@ -79,8 +79,8 @@ ${note.patientSummary}
     // Check if Gemini API key is available from environment variables
     if (!geminiApiKey) {
       toast({
-        title: "API de Gemini no configurada",
-        description: "La clave de API de Gemini no está configurada en las variables de entorno",
+        title: "Gemini API not configured",
+        description: "The Gemini API key is not configured in the environment variables",
         variant: "destructive",
       });
       return;
