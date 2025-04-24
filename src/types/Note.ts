@@ -29,6 +29,7 @@ export interface Note {
   patientSummary: string;
   medicalSummary: string;
   augmentedMedicalSummary?: string;
+  reminders?: string[];
 }
 
 // Utility function to convert from Supabase types to legacy Note type
@@ -41,9 +42,26 @@ export function consultationToNote(
   const patientSummary = summaries?.find(s => s.type === 'patient');
   const medicalSummary = summaries?.find(s => s.type === 'medical');
   const comprehensiveSummary = summaries?.find(s => s.type === 'comprehensive');
+  const remindersSummary = summaries?.find(s => s.type === 'reminders');
   
   // Extract structured data from medical summary if available
   const extractedData = medicalSummary?.extracted_data as any || {};
+  
+  // Parse reminders from the reminders summary content
+  let parsedReminders: string[] = [];
+  if (remindersSummary?.content) {
+    try {
+      const parsed = JSON.parse(remindersSummary.content);
+      // Ensure it's actually an array of strings
+      if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+        parsedReminders = parsed;
+      } else {
+        console.warn('Parsed reminders content is not a string array:', parsed);
+      }
+    } catch (error) {
+      console.error('Failed to parse reminders summary content:', error, 'Content:', remindersSummary.content);
+    }
+  }
   
   return {
     id: consultation.id,
@@ -64,5 +82,6 @@ export function consultationToNote(
     patientSummary: patientSummary?.content || '',
     medicalSummary: medicalSummary?.content || '',
     augmentedMedicalSummary: comprehensiveSummary?.content || '',
+    reminders: parsedReminders,
   };
 }
