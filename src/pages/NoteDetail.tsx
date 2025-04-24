@@ -10,8 +10,10 @@ import PatientSummaryView from '@/components/PatientSummaryView';
 import MedicalSummaryView from '@/components/MedicalSummaryView';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Note, consultationToNote } from '@/types/Note';
+import { EmergencyInfo, MedicationReminder } from '@/types/Profile';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/lib/auth-context';
+import { getProfile, updateEmergencyInfo } from '@/lib/profile-service';
 import { getConsultation, getTranscription, getSummaries } from '@/lib/consultation-service';
 import { format } from 'date-fns';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
@@ -76,6 +78,39 @@ const NoteDetail = () => {
 
     fetchConsultationData();
   }, [id, toast]);
+
+  // --- Function to Add Reminders to Profile --- (Moved outside useEffect)
+  const addRemindersToProfile = async (reminderTexts: string[]) => {
+    if (!user) throw new Error("User not logged in");
+
+    try {
+      const profile = await getProfile(user.id);
+      if (!profile) throw new Error("Profile not found");
+
+      const currentInfo = (profile.emergency_info || {}) as EmergencyInfo;
+      const existingReminders = currentInfo.medicationReminders || [];
+
+      const newReminders: MedicationReminder[] = reminderTexts.map(text => ({
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+        name: text,
+        dosage: '', 
+        frequency: 'daily',
+        time: '09:00',
+        active: true,
+      }));
+
+      const allReminders = [...existingReminders, ...newReminders];
+      await updateEmergencyInfo(user.id, { ...currentInfo, medicationReminders: allReminders });
+
+      // Optional: Navigate or just let the toast in child component handle success
+      // navigate('/reminders');
+
+    } catch (error) {
+      console.error("Failed to save reminders to profile:", error);
+      throw error; // Re-throw for PatientSummaryView to catch
+    }
+  };
+  // --- End Function to Add Reminders ---
 
   const handleUpdateNote = (updatedNote: Note) => {
     setNote(updatedNote);
@@ -190,7 +225,12 @@ const NoteDetail = () => {
         </div>
         
         <TabsContent value="patientSummary" className="flex-1 overflow-auto p-6 pb-24">
-          <PatientSummaryView note={note} />
+          {note && (
+            <PatientSummaryView 
+              note={note} 
+              onAddReminders={addRemindersToProfile}
+            />
+          )}
         </TabsContent>
         
         <TabsContent value="transcription" className="flex-1 overflow-auto p-6 pb-24">

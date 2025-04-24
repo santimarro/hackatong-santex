@@ -11,7 +11,7 @@ import ComprehensiveSummaryView from '@/components/ComprehensiveSummaryView';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Note, Consultation, consultationToNote } from '@/types/Note';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType, ArraySchema } from "@google/generative-ai";
 import { sampleNote } from '@/data/sampleNotes';
 import { useAuth } from '@/lib/auth-context';
 import { getConsultation, uploadConsultationAudio, createTranscription, createSummary, updateConsultation } from '@/lib/consultation-service';
@@ -32,13 +32,20 @@ IMPORTANT: You should include ONLY information that is explicitly mentioned in t
 - Information about warning signs, unless the doctor specifically mentioned them
 
 Your task is to:
-1. Extract and organize the information provided directly by the doctor in the consultation
-2. Present it in simple and accessible language for the patient
-3. Maintain absolute fidelity to the original content of the transcription
+1. Extract and organize the information provided directly by the doctor in the consultation for the summary.
+2. Present the summary in simple and accessible language for the patient.
+3. Extract specific tasks or instructions for the reminders list. Each reminder should be a single, clear action.
+4. Maintain absolute fidelity to the original content of the transcription for both summary and reminders.
 
 If the doctor does not explain something in detail, DO NOT provide additional explanations.
 
-Organize the information in clear sections according to what was discussed in the consultation.`;
+Organize the information in clear sections according to what was discussed in the consultation.
+
+OUTPUT FORMAT:
+{
+  "patient_summary": "string", // The patient-friendly summary as a single string.
+  "reminders": ["string"]      // An array of strings, each representing a single reminder. Example: ["Schedule follow-up appointment in 3 months", "Take Medication X twice daily for 1 week"]. If no specific reminders are mentioned, return an empty array: [].
+}`;
 
 const DEFAULT_MEDICAL_PROMPT = `Generate a professional clinical summary in SOAP format based on the transcription of the medical consultation.
 IMPORTANT: Include ONLY information that is explicitly mentioned in the transcription.
@@ -65,6 +72,35 @@ You may include your clinical reasoning and detailed explanations to support you
 Organize your response in clear sections and use professional medical language.
 
 NOTE: This second opinion is for informational purposes only and does not replace the treating physician's clinical judgment.`;
+
+// New prompt for reminders
+const DEFAULT_REMINDERS_PROMPT = `Based on the provided medical consultation transcription, extract any specific actions, follow-ups, appointments, medication instructions, or other tasks that the patient needs to remember or perform.
+
+Return the reminders as a JSON array of strings. Each string should represent a single, clear reminder.
+
+Example format:
+["Schedule follow-up appointment in 3 months", "Take Medication X twice daily for 1 week", "Get blood tests done before next visit"]
+
+If no specific reminders are mentioned, return an empty array: [].`;
+
+// Define a type for the combined patient summary and reminders output
+interface PatientSummaryWithReminders {
+  patient_summary: string;
+  reminders: string[];
+}
+
+// Define the schema for the expected JSON object output for patient summary + reminders
+const patientSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    patient_summary: { type: SchemaType.STRING },
+    reminders: {
+      type: SchemaType.ARRAY,
+      items: { type: SchemaType.STRING }
+    }
+  },
+  required: ['patient_summary', 'reminders']
+};
 
 const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -246,15 +282,17 @@ const Notes = () => {
           throw new Error('Failed to save transcription');
         }
         
-        // Generate and save summaries
+        // Generate and save summaries and reminders
         const patientSummary = await generatePatientSummary(transcript);
         const medicalSummary = await generateMedicalSummary(transcript);
         
+        console.log('patientSummary', patientSummary);
+
         // Save patient summary
         const patientSummaryData = {
           consultation_id: consultationId,
           type: 'patient',
-          content: patientSummary,
+          content: patientSummary.patient_summary,
           provider: 'gemini'
         };
         
@@ -270,6 +308,17 @@ const Notes = () => {
         
         await createSummary(medicalSummaryData);
         
+        // Save reminders (obtained from patient summary generation)
+        const remindersData = {
+          consultation_id: consultationId,
+          type: 'reminders',
+          // Store reminders as a JSON string
+          content: JSON.stringify(patientSummary.reminders),
+          provider: 'gemini'
+        };
+        
+        await createSummary(remindersData);        
+        
         // Generate augmented medical summary
         const augmentedMedicalSummary = await generateAugmentedMedicalSummary(transcript);
         
@@ -282,6 +331,7 @@ const Notes = () => {
         };
         
         await createSummary(augmentedSummaryData);
+        
         
         // Update consultation status
         await updateConsultation(consultationId, {
@@ -301,9 +351,10 @@ const Notes = () => {
           location: consultationData?.appointment_location,
           audioBlob: audioBlob,
           transcription: transcript,
-          patientSummary: patientSummary,
+          patientSummary: patientSummary.patient_summary,
           medicalSummary: medicalSummary,
           augmentedMedicalSummary: augmentedMedicalSummary,
+          reminders: patientSummary.reminders,
         };
         
         setNotes(prev => [newNote, ...prev]);
@@ -326,9 +377,10 @@ const Notes = () => {
           date: new Date().toISOString(),
           audioBlob: audioBlob,
           transcription: transcript,
-          patientSummary: patientSummary,
+          patientSummary: patientSummary.patient_summary,
           medicalSummary: medicalSummary,
           augmentedMedicalSummary: augmentedMedicalSummary,
+          reminders: patientSummary.reminders,
         };
         
         setNotes(prev => [newNote, ...prev]);
@@ -394,15 +446,15 @@ const Notes = () => {
           throw new Error('Failed to save transcription');
         }
         
-        // Generate and save summaries
+        // Generate and save summaries and reminders
         const patientSummary = await generatePatientSummary(transcript);
         const medicalSummary = await generateMedicalSummary(transcript);
-        
+
         // Save patient summary
         const patientSummaryData = {
           consultation_id: consultationId,
           type: 'patient',
-          content: patientSummary,
+          content: patientSummary.patient_summary,
           provider: 'gemini'
         };
         
@@ -416,7 +468,7 @@ const Notes = () => {
           provider: 'gemini'
         };
         
-        await createSummary(medicalSummaryData);
+        await createSummary(medicalSummaryData);      
         
         // Generate augmented medical summary
         const augmentedMedicalSummary = await generateAugmentedMedicalSummary(transcript);
@@ -430,6 +482,17 @@ const Notes = () => {
         };
         
         await createSummary(augmentedSummaryData);
+        
+        // Save reminders (obtained from patient summary generation)
+        const remindersData = {
+          consultation_id: consultationId,
+          type: 'reminders',
+          // Store reminders as a JSON string
+          content: JSON.stringify(patientSummary.reminders),
+          provider: 'gemini'
+        };
+        
+        await createSummary(remindersData);
         
         // Update consultation status
         await updateConsultation(consultationId, {
@@ -449,9 +512,10 @@ const Notes = () => {
           location: consultationData?.appointment_location,
           audioBlob: audioBlob,
           transcription: transcript,
-          patientSummary: patientSummary,
+          patientSummary: patientSummary.patient_summary,
           medicalSummary: medicalSummary,
           augmentedMedicalSummary: augmentedMedicalSummary,
+          reminders: patientSummary.reminders,
         };
         
         setNotes(prev => [newNote, ...prev]);
@@ -474,9 +538,10 @@ const Notes = () => {
           date: new Date().toISOString(),
           audioBlob: audioBlob,
           transcription: transcript,
-          patientSummary: patientSummary,
+          patientSummary: patientSummary.patient_summary,
           medicalSummary: medicalSummary,
           augmentedMedicalSummary: augmentedMedicalSummary,
+          reminders: patientSummary.reminders,
         };
         
         setNotes(prev => [newNote, ...prev]);
@@ -527,27 +592,55 @@ const Notes = () => {
     return result.results?.channels[0]?.alternatives[0]?.transcript || "";
   };
 
-  const generatePatientSummary = async (text: string): Promise<string> => {
+  const generatePatientSummary = async (text: string): Promise<PatientSummaryWithReminders> => {
     if (!geminiApiKey) {
-      throw new Error("Gemini API key not configured in environment variables");
+      console.error("Gemini API key not configured."); // Log error
+      toast({ // Add toast for config error
+        title: "Configuration Error",
+        description: "Gemini API key not configured.",
+        variant: "destructive",
+      });
+      return { patient_summary: "Configuration error: API key missing.", reminders: [] }; // Return default on config error
     }
 
     const patientPrompt = localStorage.getItem('patientPrompt') || DEFAULT_PATIENT_PROMPT;
 
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey);
-      const model = genAI.getGenerativeModel({ 
+      const model = genAI.getGenerativeModel({
         model: "gemini-2.0-flash",
       });
-      
+
       const prompt = `${patientPrompt}
                 
       Medical consultation transcription:
       ${text}`;
       
-      const result = await model.generateContent(prompt);
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: patientSchema as any,
+        }
+      });
+      console.log('RESULT MODEL:', result);
       const response = await result.response;
-      return response.text() || "Could not generate a patient summary.";
+      const responseText = response.text();
+      
+      if (!responseText) {
+          console.error("Gemini API returned an empty response.");
+          return { patient_summary: "Could not generate a patient summary.", reminders: [] };
+      }
+      
+      try {
+        // Parse the JSON response string into an object
+        const summaryData: PatientSummaryWithReminders = JSON.parse(responseText);
+        return summaryData;
+      } catch (parseError) {
+        console.error("Error parsing Gemini API response:", parseError, "Raw response:", responseText);
+        // Return a default object if parsing fails
+        return { patient_summary: "Error processing summary.", reminders: [] };
+      }
     } catch (error) {
       console.error("Error using Gemini API:", error);
       throw new Error("Failed to generate patient summary");
@@ -605,6 +698,48 @@ const Notes = () => {
     } catch (error) {
       console.error("Error using Gemini API:", error);
       throw new Error("Failed to generate augmented medical summary");
+    }
+  };
+
+  const generateReminders = async (text: string): Promise<string[]> => {
+    if (!geminiApiKey) {
+      throw new Error("Gemini API key not configured in environment variables");
+    }
+
+    const remindersPrompt = localStorage.getItem('remindersPrompt') || DEFAULT_REMINDERS_PROMPT;
+    const remindersSchema = {
+      type: "array",
+      items: { type: "string" }
+    }
+
+    try {
+      const genAI = new GoogleGenerativeAI(geminiApiKey);
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.0-flash",
+      });
+
+      const prompt = `${remindersPrompt}
+                
+      Medical consultation transcription:
+      ${text}`;
+
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: remindersSchema as ArraySchema,
+        }
+      });
+      console.log('RESULT MODEL:', result);
+      const response = result.response;
+      const responseText = response.text();
+      
+      // Add console log to see the raw response
+      console.log('Raw Reminders Response:', responseText);
+
+    } catch (error) {
+      console.error("Error using Gemini API:", error);
+      throw new Error("Failed to generate reminders");
     }
   };
 
