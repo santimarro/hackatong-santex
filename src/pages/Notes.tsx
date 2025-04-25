@@ -30,11 +30,12 @@ IMPORTANT: You should include ONLY information that is explicitly mentioned in t
 - Recommendations that were not mentioned
 - Interpretations or reasoning that are not present in the original consultation
 - Information about warning signs, unless the doctor specifically mentioned them
+- Reminders MUST come directly from the transcription; do not invent or infer tasks.
 
 Your task is to:
 1. Extract and organize the information provided directly by the doctor in the consultation for the summary.
 2. Present the summary in simple and accessible language for the patient.
-3. Extract specific tasks or instructions for the reminders list. Each reminder should be a single, clear action.
+3. Extract specific tasks or instructions for the reminders list strictly from the transcription. Each reminder should be a single, clear action mentioned by the doctor. Do not infer or add reminders that were not explicitly stated.
 4. Maintain absolute fidelity to the original content of the transcription for both summary and reminders.
 
 If the doctor does not explain something in detail, DO NOT provide additional explanations.
@@ -44,7 +45,7 @@ Organize the information in clear sections according to what was discussed in th
 OUTPUT FORMAT:
 {
   "patient_summary": "string", // The patient-friendly summary as a single string.
-  "reminders": ["string"]      // An array of strings, each representing a single reminder. Example: ["Schedule follow-up appointment in 3 months", "Take Medication X twice daily for 1 week"]. If no specific reminders are mentioned, return an empty array: [].
+  "reminders": ["string"]      // An array of strings, each representing a single reminder explicitly mentioned in the transcription. Example: ["Schedule follow-up appointment in 3 months", "Take Medication X twice daily for 1 week"]. If no specific reminders are mentioned, return an empty array: [].
 }`;
 
 const DEFAULT_MEDICAL_PROMPT = `Generate a professional clinical summary in SOAP format based on the transcription of the medical consultation.
