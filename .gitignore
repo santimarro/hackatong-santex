@@ -22,3 +22,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.cursor/rules/python-rule.mdc
+SUPABASE_SETUP.md

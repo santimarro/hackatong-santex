@@ -14,8 +14,8 @@ This guide walks through setting up Supabase for the Harvey application.
 2. Fill in your Supabase URL and anon key:
 
 ```
-VITE_SUPABASE_URL=https://your-project-url.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_URL=https://tukikskjleafuydhzzdn.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2lrc2tqbGVhZnV5ZGh6emRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5Mzk5ODgsImV4cCI6MjA2MDUxNTk4OH0.fgZBItpFzjHao60CoKBtnto6fHiQSuTW-x9GdiOgYEc
 ```
 
 ## Database Setup
