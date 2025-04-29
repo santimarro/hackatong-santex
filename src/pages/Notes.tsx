@@ -133,7 +133,7 @@ ${text}`
     throw new Error("Failed to generate patient summary");
   }
 };
- 
+
 const generateMedicalSummary = async (text: string): Promise<string> => {
   if (!geminiApiKey) {
     throw new Error("Gemini API key not configured in environment variables");
