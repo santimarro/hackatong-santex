@@ -39,7 +39,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ className = '' }) =
                     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="text-xs">Chat</span>
+          <span className="text-xs">Assistant</span>
         </button>
         
         <button 
@@ -56,7 +56,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ className = '' }) =
                     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="text-xs">Consultations</span>
+          <span className="text-xs">Visits</span>
         </button>
         
         <button 
