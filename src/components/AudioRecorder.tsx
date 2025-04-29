@@ -250,7 +250,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Grabar consulta médica</DialogTitle>
+          <DialogTitle>Record medical consultation</DialogTitle>
         </DialogHeader>
         
         <div className="flex flex-col items-center justify-center py-6">
@@ -266,7 +266,12 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
                   variant="default" 
                   size="icon" 
                   className="h-20 w-20 rounded-full bg-destructive hover:bg-destructive/90" 
-                  onClick={stopRecording}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    stopRecording();
+                  }}
+                  type="button"
                 >
                   <Square className="h-8 w-8 text-white" />
                 </Button>
@@ -274,7 +279,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
             ) : recordedBlob ? (
               <div className="text-center">
                 <audio src={URL.createObjectURL(recordedBlob)} controls className="mb-4 w-full" />
-                <p className="text-sm text-gray-500 mb-2">Reproducir para verificar</p>
+                <p className="text-sm text-gray-500 mb-2">Play to verify</p>
               </div>
             ) : (
               <Button 
@@ -291,10 +296,10 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
           <p className="text-sm text-gray-500">
             {isRecording ? (
               <span className="font-medium text-destructive">
-                Haz clic en el botón para detener la grabación
+                Click the button to stop recording
               </span>
             ) : !recordedBlob ? (
-              "Haz clic para comenzar a grabar la consulta"
+              "Click to start recording the consultation"
             ) : null}
           </p>
           
@@ -303,18 +308,23 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
             <Button 
               variant="destructive"
               size="sm"
-              onClick={emergencyStop}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                emergencyStop();
+              }}
+              type="button"
               className="mt-4"
             >
               <AlertTriangle className="h-4 w-4 mr-2" />
-              Parar grabación
+              Stop recording
             </Button>
           )}
           
           {!isRecording && !recordedBlob && (
             <div className="mt-4 max-w-xs text-center text-xs text-gray-500">
-              <p>Coloca tu dispositivo cerca del médico para capturar claramente la conversación.</p>
-              <p className="mt-2">Recuerda obtener permiso antes de grabar la consulta.</p>
+              <p>Place your device close to the doctor to clearly capture the conversation.</p>
+              <p className="mt-2">Remember to get permission before recording the consultation.</p>
             </div>
           )}
           
@@ -332,7 +342,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
             onClick={onClose}
             disabled={isUploading}
           >
-            Cancelar
+            Cancel
           </Button>
           
           {recordedBlob && (
@@ -344,9 +354,9 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ isOpen, onClose, onRecord
               {isUploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Procesando...
+                  Processing...
                 </>
-              ) : "Procesar consulta"}
+              ) : "Process consultation"}
             </Button>
           )}
         </DialogFooter>

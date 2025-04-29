@@ -82,10 +82,10 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
             }
           }
           
-          console.warn("No se pudo encontrar audio para la nota:", note.id);
+          console.warn("Could not find audio for note:", note.id);
         }
       } catch (error) {
-        console.error("Error al obtener audio:", error);
+        console.error("Error getting audio:", error);
       }
     };
     
@@ -112,16 +112,16 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
     
     setIsEditing(false);
     toast({
-      title: "Guardado",
-      description: "Información de la consulta actualizada",
+      title: "Saved",
+      description: "Consultation information updated",
     });
   };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(transcription);
     toast({
-      title: "Copiado",
-      description: "Transcripción copiada al portapapeles",
+      title: "Copied",
+      description: "Transcription copied to clipboard",
     });
   };
 
@@ -172,11 +172,11 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="max-w-xs"
-              placeholder="Título de la consulta"
+              placeholder="Consultation Title"
             />
             <Button size="sm" onClick={handleSave} className="bg-secondary hover:bg-secondary/90">
               <Save className="h-4 w-4 mr-1" />
-              Guardar
+              Save
             </Button>
           </div>
         ) : (
@@ -188,7 +188,7 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
           </div>
         )}
         
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
             size="sm" 
@@ -198,106 +198,106 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
             {isPlaying ? (
               <>
                 <Pause className="h-4 w-4 mr-1" />
-                Pausar
+                Pause
               </>
             ) : (
               <>
                 <Play className="h-4 w-4 mr-1" />
-                Reproducir
+                Play
               </>
             )}
           </Button>
           <Button variant="ghost" size="sm" onClick={handleCopy}>
             <Copy className="h-4 w-4" />
           </Button>
-        </div>
+        </div> */}
       </div>
       
       {isEditing ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div className="space-y-3">
             <div>
-              <Label htmlFor="doctorName">Nombre del médico</Label>
+              <Label htmlFor="doctorName">Doctor's Name</Label>
               <Input
                 id="doctorName"
                 value={doctorName}
                 onChange={(e) => setDoctorName(e.target.value)}
-                placeholder="Dr. Apellido"
+                placeholder="Dr. Last Name"
               />
             </div>
             
             <div>
-              <Label htmlFor="specialty">Especialidad</Label>
+              <Label htmlFor="specialty">Specialty</Label>
               <Select value={specialty} onValueChange={setSpecialty}>
                 <SelectTrigger id="specialty">
-                  <SelectValue placeholder="Seleccionar especialidad" />
+                  <SelectValue placeholder="Select specialty" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="medicina-general">Medicina General</SelectItem>
-                  <SelectItem value="cardiologia">Cardiología</SelectItem>
-                  <SelectItem value="dermatologia">Dermatología</SelectItem>
-                  <SelectItem value="gastroenterologia">Gastroenterología</SelectItem>
-                  <SelectItem value="neurologia">Neurología</SelectItem>
-                  <SelectItem value="obstetricia">Obstetricia y Ginecología</SelectItem>
-                  <SelectItem value="oftalmologia">Oftalmología</SelectItem>
-                  <SelectItem value="ortopedia">Ortopedia</SelectItem>
-                  <SelectItem value="pediatria">Pediatría</SelectItem>
-                  <SelectItem value="psiquiatria">Psiquiatría</SelectItem>
-                  <SelectItem value="otro">Otro</SelectItem>
+                  <SelectItem value="medicina-general">General Medicine</SelectItem>
+                  <SelectItem value="cardiologia">Cardiology</SelectItem>
+                  <SelectItem value="dermatologia">Dermatology</SelectItem>
+                  <SelectItem value="gastroenterologia">Gastroenterology</SelectItem>
+                  <SelectItem value="neurologia">Neurology</SelectItem>
+                  <SelectItem value="obstetricia">Obstetrics and Gynecology</SelectItem>
+                  <SelectItem value="oftalmologia">Ophthalmology</SelectItem>
+                  <SelectItem value="ortopedia">Orthopedics</SelectItem>
+                  <SelectItem value="pediatria">Pediatrics</SelectItem>
+                  <SelectItem value="psiquiatria">Psychiatry</SelectItem>
+                  <SelectItem value="otro">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div>
-              <Label htmlFor="location">Ubicación</Label>
+              <Label htmlFor="location">Location</Label>
               <Input
                 id="location"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Hospital / Clínica"
+                placeholder="Hospital / Clinic"
               />
             </div>
             
             <div>
-              <Label htmlFor="diagnosis">Diagnóstico</Label>
+              <Label htmlFor="diagnosis">Diagnosis</Label>
               <Input
                 id="diagnosis"
                 value={diagnosis}
                 onChange={(e) => setDiagnosis(e.target.value)}
-                placeholder="Diagnóstico principal"
+                placeholder="Main diagnosis"
               />
             </div>
           </div>
           
           <div className="space-y-3">
             <div>
-              <Label htmlFor="treatment">Tratamiento</Label>
+              <Label htmlFor="treatment">Treatment</Label>
               <Textarea
                 id="treatment"
                 value={treatment}
                 onChange={(e) => setTreatment(e.target.value)}
-                placeholder="Medicamentos, dosis, duración..."
+                placeholder="Medications, dosage, duration..."
                 rows={3}
               />
             </div>
             
             <div>
-              <Label htmlFor="followUp">Seguimiento</Label>
+              <Label htmlFor="followUp">Follow-up</Label>
               <Input
                 id="followUp"
                 value={followUp}
                 onChange={(e) => setFollowUp(e.target.value)}
-                placeholder="Próxima cita / estudios"
+                placeholder="Next appointment / studies"
               />
             </div>
             
             <div>
-              <Label>Síntomas</Label>
+              <Label>Symptoms</Label>
               <div className="flex space-x-2 mb-2">
                 <Input
                   value={newSymptom}
                   onChange={(e) => setNewSymptom(e.target.value)}
-                  placeholder="Agregar síntoma"
+                  placeholder="Add symptom"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -325,12 +325,12 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
             </div>
             
             <div>
-              <Label>Preguntas para próxima consulta</Label>
+              <Label>Questions for next consultation</Label>
               <div className="flex space-x-2 mb-2">
                 <Input
                   value={newQuestion}
                   onChange={(e) => setNewQuestion(e.target.value)}
-                  placeholder="Agregar pregunta"
+                  placeholder="Add question"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -364,28 +364,28 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
             <div className="space-y-3">
               {doctorName && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Médico</h4>
+                  <h4 className="text-sm font-medium text-gray-500">Doctor</h4>
                   <p>{doctorName}</p>
                 </div>
               )}
               
               {specialty && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Especialidad</h4>
+                  <h4 className="text-sm font-medium text-gray-500">Specialty</h4>
                   <p>{specialty}</p>
                 </div>
               )}
               
               {location && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Ubicación</h4>
+                  <h4 className="text-sm font-medium text-gray-500">Location</h4>
                   <p>{location}</p>
                 </div>
               )}
               
               {diagnosis && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Diagnóstico</h4>
+                  <h4 className="text-sm font-medium text-gray-500">Diagnosis</h4>
                   <p>{diagnosis}</p>
                 </div>
               )}
@@ -394,21 +394,21 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
             <div className="space-y-3">
               {treatment && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Tratamiento</h4>
+                  <h4 className="text-sm font-medium text-gray-500">Treatment</h4>
                   <p className="whitespace-pre-wrap">{treatment}</p>
                 </div>
               )}
               
               {followUp && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Seguimiento</h4>
+                  <h4 className="text-sm font-medium text-gray-500">Follow-up</h4>
                   <p>{followUp}</p>
                 </div>
               )}
               
               {symptoms && symptoms.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Síntomas</h4>
+                  <h4 className="text-sm font-medium text-gray-500">Symptoms</h4>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {symptoms.map((symptom, index) => (
                       <span key={index} className="bg-primary-light text-primary text-xs py-0.5 px-2 rounded-full">
@@ -421,7 +421,7 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
               
               {questions && questions.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Preguntas pendientes</h4>
+                  <h4 className="text-sm font-medium text-gray-500">Pending Questions</h4>
                   <ul className="list-disc list-inside text-sm">
                     {questions.map((question, index) => (
                       <li key={index}>{question}</li>
@@ -436,7 +436,7 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
       
       <Card>
         <CardContent className="p-4">
-          <h3 className="font-medium mb-2">Transcripción de la consulta</h3>
+          <h3 className="font-medium mb-2">Consultation Transcription</h3>
           {isEditing ? (
             <textarea
               value={transcription}

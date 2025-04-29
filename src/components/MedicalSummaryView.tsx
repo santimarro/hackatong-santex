@@ -20,14 +20,14 @@ const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
     try {
       await navigator.clipboard.writeText(note.medicalSummary);
       toast({
-        title: "Copiado al portapapeles",
-        description: "El resumen ha sido copiado al portapapeles",
+        title: "Copied to clipboard",
+        description: "The summary has been copied to clipboard",
       });
     } catch (error) {
       console.error("Error copying to clipboard:", error);
       toast({
         title: "Error",
-        description: "No se pudo copiar al portapapeles",
+        description: "Could not copy to clipboard",
         variant: "destructive",
       });
     }
@@ -38,7 +38,7 @@ const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `resumen-medico-${note.id}.txt`;
+    a.download = `medical-summary-${note.id}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -46,7 +46,7 @@ const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
   };
 
   const handleEmailSummary = () => {
-    const subject = encodeURIComponent(`Resumen médico: ${note.title}`);
+    const subject = encodeURIComponent(`Medical summary: ${note.title}`);
     const body = encodeURIComponent(note.medicalSummary);
     window.open(`mailto:?subject=${subject}&body=${body}`);
   };
@@ -55,7 +55,7 @@ const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Resumen médico profesional',
+          title: 'Professional medical summary',
           text: note.medicalSummary,
         });
       } catch (error) {
@@ -63,8 +63,8 @@ const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
       }
     } else {
       toast({
-        title: "Compartir no disponible",
-        description: "Esta función no está disponible en tu navegador",
+        title: "Sharing not available",
+        description: "This feature is not available in your browser",
         variant: "destructive",
       });
     }
@@ -73,7 +73,7 @@ const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between gap-2">
-        <h3 className="text-lg font-medium">Resumen médico profesional</h3>
+        <h3 className="text-lg font-medium">Professional medical summary</h3>
         <div className="flex flex-wrap gap-2 justify-end">
           <Button 
             variant="outline" 
@@ -82,7 +82,7 @@ const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
             className="flex-1 sm:flex-initial"
           >
             <Copy className="h-4 w-4 mr-1" />
-            {isMobile ? '' : 'Copiar'}
+            {isMobile ? '' : 'Copy'}
           </Button>
           <Button 
             variant="outline" 
@@ -91,7 +91,7 @@ const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
             className="flex-1 sm:flex-initial"
           >
             <Download className="h-4 w-4 mr-1" />
-            {isMobile ? '' : 'Descargar'}
+            {isMobile ? '' : 'Download'}
           </Button>
           <Button 
             variant="outline" 
@@ -109,7 +109,7 @@ const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
             className="flex-1 sm:flex-initial"
           >
             <Share className="h-4 w-4 mr-1" />
-            {isMobile ? '' : 'Compartir'}
+            {isMobile ? '' : 'Share'}
           </Button>
         </div>
       </div>
@@ -132,18 +132,18 @@ const MedicalSummaryView: React.FC<MedicalSummaryViewProps> = ({ note }) => {
               onClick={() => setShowAugmented(true)}
             >
               <Brain className="h-4 w-4 mr-2" />
-              Mostrar Consulta Aumentada
+              Show Augmented Consultation
             </Button>
           ) : (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Consulta Aumentada - Segunda Opinión</h3>
+                <h3 className="text-lg font-medium">Augmented Consultation - Second Opinion</h3>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={() => setShowAugmented(false)}
                 >
-                  Ocultar
+                  Hide
                 </Button>
               </div>
               <Card className="border-primary-light">

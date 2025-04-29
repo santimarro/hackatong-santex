@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Note } from '@/types/Note';
 import { Button } from "@/components/ui/button";
@@ -17,8 +16,8 @@ const SummaryView: React.FC<SummaryViewProps> = ({ note }) => {
   const handleCopy = () => {
     navigator.clipboard.writeText(note.patientSummary);
     toast({
-      title: "Copiado",
-      description: "Resumen copiado al portapapeles",
+      title: "Copied",
+      description: "Summary copied to clipboard",
     });
   };
 
@@ -26,29 +25,29 @@ const SummaryView: React.FC<SummaryViewProps> = ({ note }) => {
     const element = document.createElement('a');
     const file = new Blob([note.patientSummary], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
-    element.download = `${note.title}-resumen.txt`;
+    element.download = `${note.title}-summary.txt`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
     
     toast({
-      title: "Descargado",
-      description: "Resumen descargado como archivo de texto",
+      title: "Downloaded",
+      description: "Summary downloaded as text file",
     });
   };
 
   // Render the summary with markdown formatting
-  const renderedSummary = marked(note.patientSummary);
+  const renderedSummary = marked.parse(note.patientSummary);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Resumen de estudio</h2>
+        <h2 className="text-xl font-semibold">Study summary</h2>
         
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleDownload}>
             <Download className="h-4 w-4 mr-1" />
-            Descargar
+            Download
           </Button>
           <Button variant="ghost" size="sm" onClick={handleCopy}>
             <Copy className="h-4 w-4" />
@@ -60,7 +59,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ note }) => {
         <CardContent className="p-4">
           <div 
             className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: renderedSummary }}
+            dangerouslySetInnerHTML={{ __html: renderedSummary as string }}
           />
         </CardContent>
       </Card>

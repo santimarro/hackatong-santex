@@ -71,14 +71,14 @@ const PatientSummaryView: React.FC<PatientSummaryViewProps> = ({ note, onAddRemi
     try {
       await navigator.clipboard.writeText(note.patientSummary);
       toast({
-        title: "Copiado al portapapeles",
-        description: "El resumen ha sido copiado al portapapeles",
+        title: "Copied to clipboard",
+        description: "The summary has been copied to clipboard",
       });
     } catch (error) {
       console.error("Error copying to clipboard:", error);
       toast({
         title: "Error",
-        description: "No se pudo copiar al portapapeles",
+        description: "Could not copy to clipboard",
         variant: "destructive",
       });
     }
@@ -89,7 +89,7 @@ const PatientSummaryView: React.FC<PatientSummaryViewProps> = ({ note, onAddRemi
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `resumen-paciente-${note.id}.txt`;
+    a.download = `patient-summary-${note.id}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -100,7 +100,7 @@ const PatientSummaryView: React.FC<PatientSummaryViewProps> = ({ note, onAddRemi
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Resumen de consulta médica',
+          title: 'Medical consultation summary',
           text: note.patientSummary,
         });
       } catch (error) {
@@ -108,8 +108,8 @@ const PatientSummaryView: React.FC<PatientSummaryViewProps> = ({ note, onAddRemi
       }
     } else {
       toast({
-        title: "Compartir no disponible",
-        description: "Esta función no está disponible en tu navegador",
+        title: "Sharing not available",
+        description: "This feature is not available in your browser",
         variant: "destructive",
       });
     }
@@ -118,7 +118,7 @@ const PatientSummaryView: React.FC<PatientSummaryViewProps> = ({ note, onAddRemi
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between gap-2">
-        <h3 className="text-lg font-medium">Resumen para el paciente</h3>
+        <h3 className="text-lg font-medium">Patient summary</h3>
         <div className="flex flex-wrap gap-2 justify-end">
           <Button 
             variant="outline" 
@@ -127,7 +127,7 @@ const PatientSummaryView: React.FC<PatientSummaryViewProps> = ({ note, onAddRemi
             className="flex-1 sm:flex-initial"
           >
             <Copy className="h-4 w-4 mr-1" />
-            {isMobile ? '' : 'Copiar'}
+            {isMobile ? '' : 'Copy'}
           </Button>
           <Button 
             variant="outline" 
@@ -136,7 +136,7 @@ const PatientSummaryView: React.FC<PatientSummaryViewProps> = ({ note, onAddRemi
             className="flex-1 sm:flex-initial"
           >
             <Download className="h-4 w-4 mr-1" />
-            {isMobile ? '' : 'Descargar'}
+            {isMobile ? '' : 'Download'}
           </Button>
           <Button 
             variant="outline" 
@@ -145,7 +145,7 @@ const PatientSummaryView: React.FC<PatientSummaryViewProps> = ({ note, onAddRemi
             className="flex-1 sm:flex-initial"
           >
             <Share className="h-4 w-4 mr-1" />
-            {isMobile ? '' : 'Compartir'}
+            {isMobile ? '' : 'Share'}
           </Button>
         </div>
       </div>
@@ -161,7 +161,7 @@ const PatientSummaryView: React.FC<PatientSummaryViewProps> = ({ note, onAddRemi
       {/* Reminders Section */}
       {note.reminders && note.reminders.length > 0 && (
         <div className="space-y-4 pt-4">  {/* Add some top padding */}
-          <h3 className="text-lg font-medium">Recordatorios</h3>
+          <h3 className="text-lg font-medium">Reminders</h3>
           <Card>
             <CardContent className="p-0">
               {note.reminders.map((reminder, index) => (

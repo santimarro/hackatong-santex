@@ -10,7 +10,6 @@ import PatientSummaryView from '@/components/PatientSummaryView';
 import MedicalSummaryView from '@/components/MedicalSummaryView';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Note, consultationToNote } from '@/types/Note';
-import { EmergencyInfo, MedicationReminder } from '@/types/Profile';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/lib/auth-context';
 import { getProfile, updateEmergencyInfo } from '@/lib/profile-service';
@@ -18,6 +17,25 @@ import { getConsultation, getTranscription, getSummaries } from '@/lib/consultat
 import { format } from 'date-fns';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { sampleNote } from '@/data/sampleNotes';
+
+// Define interfaces that were previously imported from '@/types/Profile'
+interface MedicationReminder {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  time: string;
+  active: boolean;
+}
+
+interface EmergencyInfo {
+  bloodType?: string;
+  allergies?: string[];
+  conditions?: string[];
+  medications?: string[];
+  medicationReminders?: MedicationReminder[];
+  // Add other fields as needed
+}
 
 const NoteDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -138,7 +156,7 @@ const NoteDetail = () => {
           <button className="mr-2" onClick={handleBackClick}>
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-xl font-bold">Detalle de Consulta</h1>
+          <h1 className="text-xl font-bold">Consultation Details</h1>
         </header>
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -154,16 +172,16 @@ const NoteDetail = () => {
           <button className="mr-2" onClick={handleBackClick}>
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-xl font-bold">Detalle de Consulta</h1>
+          <h1 className="text-xl font-bold">Consultation Details</h1>
         </header>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-gray-500">Consulta no encontrada</p>
+            <p className="text-gray-500">Consultation not found</p>
             <button 
               className="mt-4 px-4 py-2 bg-primary text-white rounded-md"
               onClick={() => navigate('/notes')}
             >
-              Ver todas las consultas
+              View all consultations
             </button>
           </div>
         </div>
@@ -218,9 +236,9 @@ const NoteDetail = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
         <div className="border-b border-gray-200 px-6 py-2">
           <TabsList className="grid w-full max-w-md grid-cols-3">
-            <TabsTrigger value="patientSummary">Resumen Paciente</TabsTrigger>
-            <TabsTrigger value="transcription">Transcripción</TabsTrigger>
-            <TabsTrigger value="medicalSummary">Resumen Médico</TabsTrigger>
+            <TabsTrigger value="patientSummary">Patient Summary</TabsTrigger>
+            <TabsTrigger value="transcription">Transcription</TabsTrigger>
+            <TabsTrigger value="medicalSummary">Medical Summary</TabsTrigger>
           </TabsList>
         </div>
         
@@ -238,18 +256,20 @@ const NoteDetail = () => {
         </TabsContent>
         
         <TabsContent value="medicalSummary" className="flex-1 overflow-auto p-6 pb-24">
-          {activeTab === "medicalSummary" && (
-            <div className="mb-4 flex items-center justify-end space-x-2">
-              <Switch 
-                id="augmented-mode" 
-                checked={showAugmented}
-                onCheckedChange={setShowAugmented}
-              />
-              <Label htmlFor="augmented-mode">
-                Consulta aumentada
-              </Label>
-            </div>
-          )}
+          {activeTab === "medicalSummary" 
+          // && (
+          //   <div className="mb-4 flex items-center justify-end space-x-2">
+          //     <Switch 
+          //       id="augmented-mode" 
+          //       checked={showAugmented}
+          //       onCheckedChange={setShowAugmented}
+          //     />
+          //     <Label htmlFor="augmented-mode">
+          //       Augmented consultation
+          //     </Label>
+          //   </div>
+          // )
+          }
           
           {showAugmented && note.augmentedMedicalSummary ? (
             <Card className="mb-6">

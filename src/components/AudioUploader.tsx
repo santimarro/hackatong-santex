@@ -27,8 +27,8 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
   const validateAndSetFile = (file: File) => {
     if (!file.type.startsWith('audio/')) {
       toast({
-        title: "Archivo inválido",
-        description: "Por favor sube un archivo de audio",
+        title: "Invalid file",
+        description: "Please upload an audio file",
         variant: "destructive",
       });
       return;
@@ -36,8 +36,8 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
     
     if (file.size > 100 * 1024 * 1024) {
       toast({
-        title: "Archivo demasiado grande",
-        description: "Por favor sube un archivo menor a 100MB",
+        title: "File too large",
+        description: "Please upload a file smaller than 100MB",
         variant: "destructive",
       });
       return;
@@ -99,7 +99,7 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md max-w-[95vw] p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-center sm:text-left">Subir grabación de consulta médica</DialogTitle>
+          <DialogTitle className="text-center sm:text-left">Upload Medical Consultation Recording</DialogTitle>
         </DialogHeader>
         
         {!selectedFile ? (
@@ -113,8 +113,8 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
             onDrop={handleDrop}
           >
             <Upload className="mx-auto h-8 w-8 sm:h-10 sm:w-10 text-gray-400 mb-3 sm:mb-4" />
-            <p className="text-sm font-medium mb-1">Arrastra y suelta un archivo de audio</p>
-            <p className="text-xs text-gray-500 mb-3 sm:mb-4">o</p>
+            <p className="text-sm font-medium mb-1">Drag and drop an audio file</p>
+            <p className="text-xs text-gray-500 mb-3 sm:mb-4">or</p>
             <input
               type="file"
               ref={fileInputRef}
@@ -127,13 +127,13 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
               onClick={() => fileInputRef.current?.click()}
               className="w-full sm:w-auto"
             >
-              Seleccionar archivo
+              Select file
             </Button>
             <p className="text-xs text-gray-500 mt-3 sm:mt-4">
-              Formatos permitidos: MP3, WAV, M4A, etc.
+              Allowed formats: MP3, WAV, M4A, etc.
             </p>
             <p className="text-xs text-gray-500 mt-1 sm:mt-2">
-              Tamaño máximo: 100MB
+              Maximum size: 100MB
             </p>
           </div>
         ) : (
@@ -161,11 +161,11 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
         )}
         
         <div className="text-xs text-gray-500 p-3 bg-primary-light/50 rounded-lg mt-3 sm:mt-4">
-          <p className="font-medium text-primary mb-1">Consejos para grabaciones de calidad:</p>
+          <p className="font-medium text-primary mb-1">Tips for quality recordings:</p>
           <ul className="list-disc list-inside space-y-1">
-            <li>Asegúrate de que la grabación tenga buen audio</li>
-            <li>Idealmente, la grabación debe incluir toda la consulta</li>
-            <li>Evita archivos con mucho ruido de fondo</li>
+            <li>Make sure the recording has good audio quality</li>
+            <li>Ideally, the recording should include the entire consultation</li>
+            <li>Avoid files with too much background noise</li>
           </ul>
         </div>
         
@@ -176,7 +176,7 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
             disabled={isUploading}
             className="w-full sm:w-auto"
           >
-            Cancelar
+            Cancel
           </Button>
           
           {selectedFile && (
@@ -188,9 +188,9 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({ isOpen, onClose, onFileUp
               {isUploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Procesando...
+                  Processing...
                 </>
-              ) : "Procesar consulta"}
+              ) : "Process consultation"}
             </Button>
           )}
         </DialogFooter>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -21,29 +20,29 @@ const Setup = () => {
   const { toast } = useToast();
 
   // Default system prompts
-  const defaultPatientPrompt = `Crea un resumen médico amigable para el paciente a partir de la transcripción de la consulta médica. 
-Incluye:
-- Explicación simple del diagnóstico y qué significa
-- Pasos de tratamiento explicados en lenguaje sencillo
-- Signos de alerta que requieren atención médica
-- Cuándo programar seguimiento
-- Recomendaciones de estilo de vida
-- Respuestas a preguntas frecuentes
+  const defaultPatientPrompt = `Create a patient-friendly medical summary from the medical consultation transcription.
+Include:
+- Simple explanation of the diagnosis and what it means
+- Treatment steps explained in plain language
+- Warning signs that require medical attention
+- When to schedule follow-up
+- Lifestyle recommendations
+- Answers to common questions
 
-Usa lenguaje simple, evita jerga médica, y organiza la información en secciones claras y fáciles de entender.`;
+Use simple language, avoid medical jargon, and organize information in clear, easy-to-understand sections.`;
 
-  const defaultMedicalPrompt = `Genera un resumen clínico profesional a partir de la transcripción de la consulta médica.
-Incluye:
-- Datos demográficos del paciente
-- Historia clínica relevante
-- Examen físico y hallazgos
-- Resultados de pruebas e interpretación
-- Diagnóstico diferencial y justificación
-- Plan de tratamiento con dosificación específica
-- Recomendaciones de seguimiento con plazos
-- Consideraciones especiales
+  const defaultMedicalPrompt = `Generate a professional clinical summary from the medical consultation transcription.
+Include:
+- Patient demographic data
+- Relevant medical history
+- Physical examination and findings
+- Test results and interpretation
+- Differential diagnosis and justification
+- Treatment plan with specific dosage
+- Follow-up recommendations with timeframes
+- Special considerations
 
-Utiliza terminología médica estándar, sé conciso pero completo, y estructura el resumen en formato SOAP cuando sea posible.`;
+Use standard medical terminology, be concise but comprehensive, and structure the summary in SOAP format when possible.`;
 
   // Check if API keys and prompts are already stored
   useEffect(() => {
@@ -78,7 +77,7 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
     if (!deepgramApiKey.trim() || !geminiApiKey.trim()) {
       toast({
         title: "Error",
-        description: "Por favor ingresa ambas claves API",
+        description: "Please enter both API keys",
         variant: "destructive",
       });
       setIsValidating(false);
@@ -105,8 +104,8 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
     }
 
     toast({
-      title: "Éxito",
-      description: "Configuración guardada correctamente",
+      title: "Success",
+      description: "Configuration saved successfully",
     });
 
     setIsValidating(false);
@@ -116,16 +115,16 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
   const handleResetPatientPrompt = () => {
     setPatientPrompt(defaultPatientPrompt);
     toast({
-      title: "Reiniciado",
-      description: "Instrucciones para pacientes restablecidas",
+      title: "Reset",
+      description: "Patient instructions restored",
     });
   };
   
   const handleResetMedicalPrompt = () => {
     setMedicalPrompt(defaultMedicalPrompt);
     toast({
-      title: "Reiniciado",
-      description: "Instrucciones para médicos restablecidas",
+      title: "Reset",
+      description: "Medical instructions restored",
     });
   };
 
@@ -135,45 +134,45 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center text-primary">Harvey</CardTitle>
           <CardDescription className="text-center">
-            Toma el control de tus consultas médicas
+            Take control of your medical consultations
           </CardDescription>
         </CardHeader>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="apiKeys">Claves API</TabsTrigger>
-            <TabsTrigger value="aiSettings">Configuración IA</TabsTrigger>
+            <TabsTrigger value="apiKeys">API Keys</TabsTrigger>
+            <TabsTrigger value="aiSettings">AI Settings</TabsTrigger>
           </TabsList>
           
           <TabsContent value="apiKeys" className="space-y-4">
             <CardContent>
               <form className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="deepgramApiKey">Clave API de Deepgram</Label>
+                  <Label htmlFor="deepgramApiKey">Deepgram API Key</Label>
                   <Input
                     id="deepgramApiKey"
                     type="password"
-                    placeholder="Ingresa tu clave API de Deepgram"
+                    placeholder="Enter your Deepgram API key"
                     value={deepgramApiKey}
                     onChange={(e) => setDeepgramApiKey(e.target.value)}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Obtén una clave en <a href="https://console.deepgram.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Deepgram Console</a>
+                    Get a key at <a href="https://console.deepgram.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Deepgram Console</a>
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="geminiApiKey">Clave API de Gemini</Label>
+                  <Label htmlFor="geminiApiKey">Gemini API Key</Label>
                   <Input
                     id="geminiApiKey"
                     type="password"
-                    placeholder="Ingresa tu clave API de Gemini"
+                    placeholder="Enter your Gemini API key"
                     value={geminiApiKey}
                     onChange={(e) => setGeminiApiKey(e.target.value)}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Obtén una clave en <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>
+                    Get a key at <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>
                   </p>
                 </div>
               </form>
@@ -185,49 +184,49 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <Label htmlFor="patientPrompt">Instrucciones para resumen de paciente</Label>
+                    <Label htmlFor="patientPrompt">Patient summary instructions</Label>
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       onClick={handleResetPatientPrompt}
                       className="text-xs h-7"
                     >
-                      Restablecer
+                      Reset
                     </Button>
                   </div>
                   <Textarea
                     id="patientPrompt"
-                    placeholder="Instrucciones para el resumen orientado al paciente"
+                    placeholder="Instructions for patient-oriented summary"
                     value={patientPrompt}
                     onChange={(e) => setPatientPrompt(e.target.value)}
                     className="min-h-[150px]"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Personaliza cómo se generan los resúmenes para pacientes
+                    Customize how patient summaries are generated
                   </p>
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <Label htmlFor="medicalPrompt">Instrucciones para resumen médico</Label>
+                    <Label htmlFor="medicalPrompt">Medical summary instructions</Label>
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       onClick={handleResetMedicalPrompt}
                       className="text-xs h-7"
                     >
-                      Restablecer
+                      Reset
                     </Button>
                   </div>
                   <Textarea
                     id="medicalPrompt"
-                    placeholder="Instrucciones para el resumen orientado a profesionales médicos"
+                    placeholder="Instructions for healthcare professional-oriented summary"
                     value={medicalPrompt}
                     onChange={(e) => setMedicalPrompt(e.target.value)}
                     className="min-h-[150px]"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Personaliza cómo se generan los resúmenes técnicos para médicos
+                    Customize how technical summaries for healthcare professionals are generated
                   </p>
                 </div>
               </div>
@@ -236,7 +235,7 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
         </Tabs>
         <CardFooter>
           <Button onClick={handleSubmit} disabled={isValidating} className="w-full">
-            {isValidating ? "Validando..." : "Continuar a mis notas médicas"}
+            {isValidating ? "Validating..." : "Continue to my medical notes"}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </CardFooter>
@@ -245,13 +244,13 @@ Utiliza terminología médica estándar, sé conciso pero completo, y estructura
             <div className="bg-primary-light p-3 rounded-full">
               <Stethoscope className="h-6 w-6 text-primary" />
             </div>
-            <span className="text-xs mt-2">Grabar consulta</span>
+            <span className="text-xs mt-2">Record consultation</span>
           </div>
           <div className="flex flex-col items-center">
             <div className="bg-primary-light p-3 rounded-full">
               <Upload className="h-6 w-6 text-primary" />
             </div>
-            <span className="text-xs mt-2">Subir audio</span>
+            <span className="text-xs mt-2">Upload audio</span>
           </div>
         </div>
       </Card>
