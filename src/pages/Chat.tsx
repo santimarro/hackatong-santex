@@ -8,6 +8,7 @@ import BottomNavigation from "@/components/BottomNavigation";
 import { useToast } from "@/hooks/use-toast";
 import { Note } from '@/types/Note';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { useAuth } from '@/lib/auth-context';
 
 // Use Vite's environment variables
 const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -22,11 +23,13 @@ interface Message {
 const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const userEmail = user?.email || 'User';
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Hello Juan, how can I help you today?',
+      text: `Hello ${userEmail}, how can I help you today?`,
       sender: 'system',
       timestamp: new Date()
     }
@@ -58,7 +61,7 @@ const Chat = () => {
 
     return sortedNotes.map(note => {
       return `
-------- CONSULTA MÉDICA ${note.date} -------
+------- MEDICAL CONSULTATION ${note.date} -------
 Doctor: ${note.doctorName || "Not specified"}
 Specialty: ${note.specialty || "Not specified"}
 Diagnosis: ${note.diagnosis || "Not specified"}
@@ -101,7 +104,7 @@ ${note.patientSummary}
     try {
       // Format message history for context
       const messageHistory = messages
-        .map(msg => `${msg.sender === 'user' ? 'Usuario' : 'Asistente'}: ${msg.text}`)
+        .map(msg => `${msg.sender === 'user' ? 'User' : 'Assistant'}: ${msg.text}`)
         .join('\n');
       
       // Prepare consultation summaries
@@ -109,25 +112,25 @@ ${note.patientSummary}
       
       // Create the prompt for Gemini
       const prompt = `
-Eres un asistente médico AI que ayuda a un paciente a comprender sus consultas médicas previas.
-Tu nombre es MedAssist. Responde como un asistente médico profesional pero amigable.
+You are an AI medical assistant that helps a patient understand their previous medical consultations.
+Your name is MedAssist. Respond as a professional but friendly medical assistant.
 
-Información del paciente:
-- Nombre: Juan Pérez
-- ID del paciente: #12345
+Patient Information:
+- Email: ${userEmail}
+- Patient ID: #12345
       
-A continuación se encuentran los registros de las consultas médicas previas del paciente, ordenadas desde la más reciente a la más antigua:
+Below are the records of the patient's previous medical consultations, ordered from most recent to oldest:
 
 ${consultationSummaries}
 
-El paciente se está comunicando contigo. Ayúdale a entender sus registros médicos, tratamientos, diagnósticos,
-o cualquier otra información médica que necesite. Si no tienes información específica sobre algo, indícalo claramente.
+The patient is communicating with you. Help them understand their medical records, treatments, diagnoses,
+or any other medical information they might need. If you don't have specific information about something, state it clearly.
 
-La conversación hasta ahora:
+The conversation so far:
 ${messageHistory}
 
-Usuario: ${inputMessage}
-Asistente:`;
+User: ${inputMessage}
+Assistant:`;
 
       // Call Gemini API
       const genAI = new GoogleGenerativeAI(geminiApiKey);
@@ -138,7 +141,7 @@ Asistente:`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const responseText = response.text() || 
-        "Lo siento, no pude procesar tu solicitud en este momento. Por favor, intenta de nuevo más tarde.";
+        "I'm sorry, I couldn't process your request at this time. Please try again later.";
       
       // Add system response
       const systemMessage: Message = {
@@ -155,7 +158,7 @@ Asistente:`;
       // Add error message
       const errorMessage: Message = {
         id: Date.now().toString(),
-        text: "Lo siento, ocurrió un error al procesar tu solicitud. Por favor, intenta de nuevo más tarde.",
+        text: "I'm sorry, an error occurred while processing your request. Please try again later.",
         sender: 'system',
         timestamp: new Date()
       };
@@ -184,7 +187,7 @@ Asistente:`;
 
       {/* User info */}
       <div className="border-b border-gray-200 bg-white py-3 px-6">
-        <h2 className="text-lg font-medium text-center">Bienvenido Juan Perez</h2>
+        <h2 className="text-lg font-medium text-center">Welcome {userEmail}</h2>
         <p className="text-sm text-gray-500 text-center">Chat</p>
       </div>
 
@@ -210,7 +213,7 @@ Asistente:`;
           <div className="flex justify-start">
             <div className="bg-gray-100 rounded-lg px-4 py-2 flex items-center">
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <p>Escribiendo...</p>
+              <p>Typing...</p>
             </div>
           </div>
         )}
@@ -223,7 +226,7 @@ Asistente:`;
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Escribe un mensaje"
+            placeholder="Type a message"
             className="flex-1"
             disabled={isLoading}
           />

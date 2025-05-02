@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       
-      // Proceed with signup
+      // Sign up the user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -74,16 +74,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // If we have a user, make sure their profile is created correctly
       if (data.user) {
-        // Check if the profile already exists
-        const { data: existingProfile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-          
-        // If profile doesn't exist, create it with required fields
-        if (!existingProfile) {
-          const { error: profileError } = await supabase
+        try {
+          // Try to create profile with direct insert
+          const { error: insertError } = await supabase
             .from('profiles')
             .insert({
               id: data.user.id,
@@ -100,10 +93,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             });
             
-          if (profileError) {
-            console.error('Error creating user profile:', profileError);
-            // We don't throw here as the user is already created
+          if (insertError) {
+            // Log but don't throw - the user is created but profile creation failed
+            console.error('Error creating user profile:', insertError);
+            // We don't throw here as the user is already created in auth
           }
+        } catch (profileError) {
+          console.error('Unexpected error creating profile:', profileError);
+          // Continue with the signup process even if profile creation fails
         }
       }
 
