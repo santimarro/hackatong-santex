@@ -23,10 +23,11 @@ import {
   getTranscription,
   getSummaries
 } from '@/lib/consultation-service';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Use Vite's environment variables
-const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
-const deepgramApiKey = import.meta.env.VITE_DEEPGRAM_API_KEY;
+const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY as string;
+const deepgramApiKey = import.meta.env.VITE_DEEPGRAM_API_KEY as string;
 
 interface Appointment {
   id: string;
@@ -75,16 +76,12 @@ const generatePatientSummary = async (text: string): Promise<{ patient_summary: 
   }
 
   try {
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${geminiApiKey}`,
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `Create a patient-friendly medical summary based on the transcription of the medical consultation.
+    const genAI = new GoogleGenerativeAI(geminiApiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash",
+    });
+    
+    const prompt = `Create a patient-friendly medical summary based on the transcription of the medical consultation.
 
 IMPORTANT: You should include ONLY information that is explicitly mentioned in the transcription. DO NOT add:
 - Additional explanations that the doctor did not provide
@@ -103,29 +100,20 @@ If the doctor does not explain something in detail, DO NOT provide additional ex
 Organize the information in clear sections according to what was discussed in the consultation.
 
 Medical consultation transcription:
-${text}`
-          }]
-        }]
-      })
-    });
+${text}`;
 
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    const summary = result.candidates[0].content.parts[0].text;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const summary = response.text();
     
-    // Simple parsing of the response to extract reminders
-    const remindersMatch = summary.match(/Reminders:([\s\S]*?)(?=\n\n|$)/);
-    const reminders = remindersMatch 
-      ? remindersMatch[1].split('\n').filter(line => line.trim())
-      : [];
-    
-    const patientSummary = summary.replace(/Reminders:[\s\S]*$/, '').trim();
+    // Extract reminders from the summary
+    const reminders = summary
+      .split('\n')
+      .filter(line => line.trim().startsWith('-'))
+      .map(line => line.trim().substring(1).trim());
 
     return {
-      patient_summary,
+      patient_summary: summary,
       reminders
     };
   } catch (error) {
@@ -140,16 +128,12 @@ const generateMedicalSummary = async (text: string): Promise<string> => {
   } 
  
   try {
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${geminiApiKey}`,
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `Generate a professional clinical summary in SOAP format based on the transcription of the medical consultation.
+    const genAI = new GoogleGenerativeAI(geminiApiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash",
+    });
+    
+    const prompt = `Generate a professional clinical summary in SOAP format based on the transcription of the medical consultation.
 IMPORTANT: Include ONLY information that is explicitly mentioned in the transcription.
 
 Structure the summary using the SOAP format:
@@ -161,18 +145,11 @@ Structure the summary using the SOAP format:
 Use standard medical terminology and maintain absolute fidelity to the content of the transcription.
 
 Medical consultation transcription:
-${text}`
-          }]
-        }]
-      })
-    });
+${text}`;
 
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    return result.candidates[0].content.parts[0].text;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
   } catch (error) {
     console.error("Error generating medical summary:", error);
     throw new Error("Failed to generate medical summary");
