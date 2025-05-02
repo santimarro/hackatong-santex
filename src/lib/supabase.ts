@@ -58,13 +58,6 @@ export const getWhitelistedEmails = async () => {
 
 // Auth functions
 export const signUp = async (email: string, password: string) => {
-  // First check if email is whitelisted
-  const isWhitelisted = await isEmailWhitelisted(email);
-  
-  if (!isWhitelisted) {
-    throw new Error('This email is not authorized to sign up. Please contact an administrator.');
-  }
-  
   return await supabase.auth.signUp({
     email,
     password,

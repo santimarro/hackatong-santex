@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase, getSession, getCurrentUser, isEmailWhitelisted } from './supabase';
+import { supabase, getSession, getCurrentUser } from './supabase';
 
 interface AuthContextProps {
   user: User | null;
@@ -56,13 +56,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
       setLoading(true);
-      
-      // First check if email is whitelisted
-      const isWhitelisted = await isEmailWhitelisted(email);
-      
-      if (!isWhitelisted) {
-        throw new Error('This email is not authorized to sign up. Please contact an administrator.');
-      }
       
       // Proceed with signup
       const { data, error } = await supabase.auth.signUp({

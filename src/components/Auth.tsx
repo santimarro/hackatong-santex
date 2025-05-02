@@ -47,14 +47,7 @@ export default function Auth() {
           await signUp(email, password, fullName);
           // The useEffect will handle redirect once user state updates
         } catch (signupError: any) {
-          // Special handling for whitelist errors
-          if (signupError.message?.includes('not authorized')) {
-            setLocalError(`The email "${email}" is not on our approved list. Registration is by invitation only. Please contact your administrator to request access.`);
-            console.error('Email whitelist error:', signupError.message);
-            return; // Don't re-throw to avoid confusing users with technical errors
-          } else {
-            throw signupError; // Re-throw for general error handling
-          }
+          throw signupError; // Re-throw for general error handling
         }
       }
     } catch (error: any) {
@@ -94,11 +87,11 @@ export default function Auth() {
             Harvey
           </CardTitle>
           <CardDescription className="text-center">
-            Your medical consultation assistant
+            Your pediatric health assistant
           </CardDescription>
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-600">
-              Harvey, a platform for patient-centered healthcare
+              Harvey, a platform for child-centered healthcare
             </p>
           </div>
           {/* Add a hidden button to toggle debug info */}
@@ -135,15 +128,9 @@ export default function Auth() {
               <div className="space-y-4">
                 {authMode === 'signup' && (
                   <>
-                    <Alert className="mb-4 bg-blue-50 text-blue-800 border border-blue-200">
-                      <AlertDescription className="text-sm">
-                        Registration is by invitation only. Your email address must be pre-approved by an administrator before you can sign up.
-                      </AlertDescription>
-                    </Alert>
-                    
                     <div className="space-y-2">
                       <Label htmlFor="fullName">
-                        Full Name <span className="text-red-500">*</span>
+                        Parent/Guardian Full Name <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="fullName"
@@ -154,7 +141,7 @@ export default function Auth() {
                         required
                       />
                       <p className="text-xs text-gray-500">
-                        This name will appear in your medical profile and emergency documents
+                        This name will appear in your child's medical profile and emergency documents
                       </p>
                     </div>
                   </>
