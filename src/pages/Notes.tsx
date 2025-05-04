@@ -35,7 +35,7 @@ interface Appointment {
   scheduled_for: string;
   location?: string;
 }
-
+ 
 const formatAppointmentDateTime = (dateString: string): string => {
   const date = new Date(dateString);
   const isToday = new Date().toDateString() === date.toDateString();
