@@ -31,6 +31,10 @@ import Reminders from "./pages/Reminders";
 import Setup from "./pages/Setup";
 import Admin from "./pages/Admin";
 
+// --- Doctor Review Page Import ---
+import DoctorReviewPage from "./pages/DoctorReviewPage";
+// --- End Doctor Review Page Import ---
+
 const App = () => {
   // Create a client inside the component to ensure React context is available
   const [queryClient] = useState(() => new QueryClient());
@@ -47,6 +51,9 @@ const App = () => {
               <Route path="/auth" element={<Auth />} />
               <Route path="/emergency/public/:userId" element={<PublicEmergency />} />
               <Route path="/debug" element={<Debug />} />
+              {/* --- New Public Route for Doctor Review --- */}
+              <Route path="/doctor/review/:shareHash" element={<DoctorReviewPage />} />
+              {/* --- End New Public Route --- */}
               
               {/* Temporary route */}
               <Route path="/under-construction" element={<UnderConstruction />} />

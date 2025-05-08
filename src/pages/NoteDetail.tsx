@@ -18,6 +18,22 @@ import { format } from 'date-fns';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { sampleNote } from '@/data/sampleNotes';
 
+// --- Share with Doctor Imports ---
+import { supabase } from '@/lib/supabase'; // Your Supabase client instance
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+// --- End Share with Doctor Imports ---
+
 // Define interfaces that were previously imported from '@/types/Profile'
 interface MedicationReminder {
   id: string;
@@ -46,6 +62,13 @@ const NoteDetail = () => {
   const [showAugmented, setShowAugmented] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // --- Share with Doctor State ---
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [doctorEmail, setDoctorEmail] = useState('');
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  // --- End Share with Doctor State ---
 
   useEffect(() => {
     const fetchConsultationData = async () => {
@@ -97,6 +120,132 @@ const NoteDetail = () => {
 
     fetchConsultationData();
   }, [id, toast]);
+
+  // --- Share with Doctor Function (Client-Side Workaround) ---
+  const handleShareConsultation = async () => {
+    if (!id || !user) {
+      toast({ title: 'Error', description: 'Consultation ID or user information is missing.', variant: 'destructive' });
+      return;
+    }
+    if (!doctorEmail.trim()) {
+      setShareError('Please enter a valid email address for the doctor.');
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(doctorEmail)) {
+      setShareError('Invalid email format.');
+      return;
+    }
+
+    setIsSharing(true);
+    setShareError(null);
+
+    try {
+      const shareHash = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 3); // 3-day expiry
+
+      // 1. Update consultations table
+      const { error: updateConsultationError } = await supabase
+        .from('consultations')
+        .update({
+          doctor_email: doctorEmail,
+          shared_with_doctor_at: new Date().toISOString(),
+          share_hash: shareHash,
+          share_hash_expires_at: expiresAt.toISOString(),
+          review_status: 'pending_review', 
+        })
+        .eq('id', id)
+        .eq('patient_id', user.id); 
+
+      if (updateConsultationError) {
+        console.error('Error updating consultation:', updateConsultationError);
+        throw new Error('Failed to update consultation with share details. ' + updateConsultationError.message);
+      }
+
+      // 2. Create or Update record in doctor_invitations
+      const { error: invitationError } = await supabase
+        .from('doctor_invitations')
+        .upsert({
+          patient_profile_id: user.id,
+          doctor_email: doctorEmail,
+          consultation_id: id,
+          status: 'link_prepared_for_user', 
+          invitation_sent_at: new Date().toISOString(), 
+        }, {
+          onConflict: 'doctor_email,consultation_id',
+        });
+
+      if (invitationError) {
+        console.error('Error upserting doctor invitation record:', invitationError);
+      }
+
+      // 3. Prepare and open mailto link
+      const appDomain = window.location.origin; // Simplify to just use origin, avoid import.meta.env linter error
+      const shareLinkUrl = `${appDomain}/doctor/review/${shareHash}`;
+      
+      const patientName = user.user_metadata?.full_name || 'A Harvey User';
+      const consultationTitle = note?.title || 'a medical consultation';
+
+      const emailSubject = `Review Request: ${consultationTitle} - Shared by ${patientName}`;
+      const emailBody = `Hello Dr. ${doctorEmail.split('@')[0] || ''},
+
+${patientName} has shared a summary of their recent medical consultation ("${consultationTitle}") with you via the Harvey app.
+
+Please review the summary here: ${shareLinkUrl}
+This link is secure and will expire in 3 days.
+
+With Harvey, you can easily review consultation summaries, copy key information to your EHR, and (soon) validate summaries for your patients.
+
+If you're interested in streamlining this process for all your patients, consider joining Harvey for free!
+
+Best regards,
+${patientName}
+(via Harvey App)`;
+
+      const mailtoLink = `mailto:${doctorEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+      
+      // Close the dialog before attempting to open email client
+      setIsShareDialogOpen(false); 
+      setDoctorEmail('');
+
+      // Create and click an anchor element instead of setting window.location.href
+      // This approach has better compatibility with mobile devices
+      const mailtoLinkElement = document.createElement('a');
+      mailtoLinkElement.href = mailtoLink;
+      mailtoLinkElement.target = '_blank'; // This often helps with mailto links
+      mailtoLinkElement.rel = 'noopener noreferrer';
+      document.body.appendChild(mailtoLinkElement);
+      mailtoLinkElement.click();
+      document.body.removeChild(mailtoLinkElement);
+      
+      toast({
+        title: 'Email Ready to Send!',
+        description: "Your default email app should open with a pre-filled message. Please review and send it to your doctor.",
+        duration: 7000, 
+      });
+
+      // Add fallback message in case email client doesn't open
+      setTimeout(() => {
+        toast({
+          title: 'Having trouble?',
+          description: "If your email app didn't open, copy the doctor's email and share the consultation manually.",
+          duration: 10000,
+        });
+      }, 5000); // Show after 5 seconds if user is still on the page
+
+    } catch (error: any) {
+      console.error('Error preparing share link:', error);
+      setShareError(error.message || 'Failed to prepare share link. Please try again.');
+      toast({
+        title: 'Preparation Failed',
+        description: error.message || 'An error occurred.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSharing(false);
+    }
+  };
+  // --- End Share with Doctor Function ---
 
   // --- Function to Add Reminders to Profile --- (Moved outside useEffect)
   const addRemindersToProfile = async (reminderTexts: string[]) => {
@@ -233,6 +382,70 @@ const NoteDetail = () => {
           )}
         </div>
       </div>
+      
+      {/* Share with Doctor Button and Dialog - MOVED to above tabs */}
+      {note && (
+        <div className="px-6 py-2 border-b border-gray-200 bg-white">
+          <Dialog open={isShareDialogOpen} onOpenChange={(open) => {
+            setIsShareDialogOpen(open);
+            if (!open) {
+              setShareError(null);
+              setDoctorEmail('');
+            }
+          }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full">
+                Share with Doctor (via your Email)
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Share Consultation via Your Email</DialogTitle>
+                <DialogDescription>
+                  Enter the doctor's email. We'll save this and prepare an email for you to send from your own email client.
+                  The secure link will expire in 3 days.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="doctor-email" className="text-right">
+                    Doctor's Email
+                  </Label>
+                  <Input
+                    id="doctor-email"
+                    type="email"
+                    value={doctorEmail}
+                    onChange={(e) => {
+                      setDoctorEmail(e.target.value);
+                      if (shareError) setShareError(null); 
+                    }}
+                    className="col-span-3"
+                    placeholder="doctor@example.com"
+                  />
+                </div>
+                {shareError && (
+                  <p className="col-span-4 text-sm text-red-600 text-center px-1">{shareError}</p>
+                )}
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button type="submit" onClick={handleShareConsultation} disabled={isSharing || !doctorEmail.trim()}>
+                  {isSharing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Preparing...
+                    </>
+                  ) : (
+                    'Prepare Email & Share Link'
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
         <div className="border-b border-gray-200 px-6 py-2">
