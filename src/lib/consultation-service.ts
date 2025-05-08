@@ -80,7 +80,8 @@ async function fetchUserConsultations(userId: string): Promise<Consultation[]> {
       .from('consultations')
       .select('*')
       .or(`patient_id.eq.${userId},doctor_id.eq.${userId}`)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(1);
 
     if (error) {
       console.error('Error fetching consultations:', error);
@@ -228,7 +229,8 @@ async function fetchTranscription(consultationId: string): Promise<Transcription
       .from('transcriptions')
       .select('*')
       .eq('consultation_id', consultationId)
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1);
 
     if (error) {
       console.error('Error fetching transcription:', error);

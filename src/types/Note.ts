@@ -38,6 +38,7 @@ export function consultationToNote(
   transcription?: Transcription | null,
   summaries?: Summary[]
 ): Note {
+  console.log('summaries', summaries);
   // Find summaries by type
   const patientSummary = summaries?.find(s => s.type === 'patient');
   const medicalSummary = summaries?.find(s => s.type === 'medical');
@@ -49,8 +50,10 @@ export function consultationToNote(
   
   // Parse reminders from the reminders summary content
   let parsedReminders: string[] = [];
+  console.log('remindersSummary', summaries);
   if (remindersSummary?.content) {
     try {
+      console.log('remindersSummary', remindersSummary);
       const parsed = JSON.parse(remindersSummary.content);
       // Ensure it's actually an array of strings
       if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {

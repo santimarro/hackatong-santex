@@ -120,28 +120,38 @@ const AppointmentsPage = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {appointments.map(appointment => (
-              <Card 
-                key={appointment.id} 
-                className="cursor-pointer" 
-                onClick={() => navigate(`/appointment/${appointment.id}`)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="font-medium">{appointment.title || "Medical Appointment"}</h3>
-                      <p className="text-sm text-gray-500">
-                        {formatDate(appointment.scheduled_for)}, {formatTime(appointment.scheduled_for)}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {appointment.location || "Virtual"}
-                      </p>
+            {appointments.map(appointment => {
+              const handleClick = () => {
+                if (appointment.status === 'completed' && appointment.consultation_id) {
+                  navigate(`/notes/${appointment.consultation_id}`);
+                } else {
+                  navigate(`/appointment/${appointment.id}`);
+                }
+              };
+
+              return (
+                <Card 
+                  key={appointment.id} 
+                  className="cursor-pointer" 
+                  onClick={handleClick}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium">{appointment.title || "Medical Appointment"}</h3>
+                        <p className="text-sm text-gray-500">
+                          {formatDate(appointment.scheduled_for)}, {formatTime(appointment.scheduled_for)}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {appointment.location || "Virtual"}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>

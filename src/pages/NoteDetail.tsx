@@ -65,13 +65,14 @@ const NoteDetail = () => {
         }
         
         // Fetch consultation data
+        
         const consultation = await getConsultation(id);
         
         if (!consultation) {
           setLoading(false);
           return;
         }
-        
+        console.log('consultation', consultation);
         // Fetch transcription
         const transcription = await getTranscription(id);
         
@@ -256,32 +257,7 @@ const NoteDetail = () => {
         </TabsContent>
         
         <TabsContent value="medicalSummary" className="flex-1 overflow-auto p-6 pb-24">
-          {activeTab === "medicalSummary" 
-          // && (
-          //   <div className="mb-4 flex items-center justify-end space-x-2">
-          //     <Switch 
-          //       id="augmented-mode" 
-          //       checked={showAugmented}
-          //       onCheckedChange={setShowAugmented}
-          //     />
-          //     <Label htmlFor="augmented-mode">
-          //       Augmented consultation
-          //     </Label>
-          //   </div>
-          // )
-          }
-          
-          {showAugmented && note.augmentedMedicalSummary ? (
-            <Card className="mb-6">
-              <CardContent className="pt-6">
-                <div className="prose prose-sm md:prose-base max-w-none">
-                  <MarkdownRenderer markdown={note.augmentedMedicalSummary} />
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <MedicalSummaryView note={note} />
-          )}
+          <MedicalSummaryView note={note} />
         </TabsContent>
       </Tabs>
 

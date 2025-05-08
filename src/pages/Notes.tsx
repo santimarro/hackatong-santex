@@ -34,6 +34,8 @@ interface Appointment {
   title: string;
   scheduled_for: string;
   location?: string;
+  status: string;
+  consultation_id?: string;
 }
  
 const formatAppointmentDateTime = (dateString: string): string => {
@@ -597,8 +599,15 @@ The response should be a single summarized, well-structured document with markdo
           Summary
         </Button>
       </header>
-
-      {loading ? (
+      {isProcessing ? (
+          <div className="flex flex-1 items-center justify-center p-6">
+            <div className="text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-gray-500">Processing your medical consultation...</p>
+              <p className="text-xs text-gray-400 mt-2">This may take a minute</p>
+            </div>
+          </div>
+        ) : loading ? (
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 text-primary animate-spin" />
         </div>
@@ -612,7 +621,13 @@ The response should be a single summarized, well-structured document with markdo
                 <Card 
                   key={appointment.id}
                   className="mb-4 cursor-pointer" 
-                  onClick={() => navigate(`/appointment/${appointment.id}`)}
+                  onClick={() => {
+                    if (appointment.status === 'completed' && apsummariespointment.consultation_id) {
+                      navigate(`/notes/${appointment.consultation_id}`);
+                    } else {
+                      navigate(`/appointment/${appointment.id}`);
+                    }
+                  }}
                 >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
@@ -657,7 +672,14 @@ The response should be a single summarized, well-structured document with markdo
                 <Card 
                   key={appointment.id}
                   className="mb-4 cursor-pointer" 
-                  onClick={() => navigate(`/appointment/${appointment.id}`)}
+                  onClick={() => {
+                    console.log('appointment', appointment);
+                    if (appointment.status === 'completed' && appointment.consultation_id) {
+                      navigate(`/note/${appointment.consultation_id}`);
+                    } else {
+                      navigate(`/appointment/${appointment.id}`);
+                    }
+                  }}
                 >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
