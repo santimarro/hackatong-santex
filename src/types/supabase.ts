@@ -329,6 +329,7 @@ export type Database = {
           content: string
           created_at: string | null
           extracted_data: Json | null
+          extracted_reminders: string[] | null
           id: string
           original_content: string | null
           provider: string | null
@@ -342,6 +343,7 @@ export type Database = {
           content: string
           created_at?: string | null
           extracted_data?: Json | null
+          extracted_reminders?: string[] | null
           id?: string
           original_content?: string | null
           provider?: string | null
@@ -355,6 +357,7 @@ export type Database = {
           content?: string
           created_at?: string | null
           extracted_data?: Json | null
+          extracted_reminders?: string[] | null
           id?: string
           original_content?: string | null
           provider?: string | null

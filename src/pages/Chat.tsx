@@ -6,9 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUp, Loader2, Stethoscope } from "lucide-react";
 import BottomNavigation from "@/components/BottomNavigation";
 import { useToast } from "@/hooks/use-toast";
-import { Note } from '@/types/Note';
+import { Note, consultationToNote } from '@/types/Note';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useAuth } from '@/lib/auth-context';
+import { 
+  getUserConsultations, 
+  getTranscription,
+  getSummaries
+} from '@/lib/consultation-service';
 
 // Use Vite's environment variables
 const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -25,6 +30,7 @@ const Chat = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const userEmail = user?.email || 'User';
+  const userName = user?.user_metadata?.full_name || userEmail;
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -35,23 +41,59 @@ const Chat = () => {
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingNotes, setIsLoadingNotes] = useState(true);
   const [notes, setNotes] = useState<Note[]>([]);
 
-  // Load notes on component mount
+  // Load notes on component mount from Supabase
   useEffect(() => {
-    const savedNotes = localStorage.getItem('medicalNotes');
-    if (savedNotes) {
+    async function fetchChatContextNotes() {
+      if (!user) {
+        setIsLoadingNotes(false);
+        return;
+      }
+      setIsLoadingNotes(true);
       try {
-        const parsedNotes = JSON.parse(savedNotes);
-        setNotes(parsedNotes);
-      } catch (e) {
-        console.error("Error parsing saved notes:", e);
+        const consultationsData = await getUserConsultations(user.id);
+        console.log("[ChatPage] Raw consultationsData from Supabase:", consultationsData); // LOG 1
+
+        if (consultationsData && consultationsData.length > 0) {
+          const chatNotes: Note[] = [];
+          for (const consultation of consultationsData) {
+            try {
+              const transcription = await getTranscription(consultation.id);
+              const summaries = await getSummaries(consultation.id);
+              const note = consultationToNote(consultation, transcription, summaries || []); 
+              chatNotes.push(note);
+            } catch (err) {
+              console.error(`Error processing consultation ${consultation.id} for chat context:`, err);
+            }
+          }
+          console.log("[ChatPage] Processed chatNotes before setNotes:", chatNotes); // LOG 2
+          setNotes(chatNotes);
+        } else {
+          console.log("[ChatPage] No consultations found in DB, setting notes to empty array."); // LOG 3
+          setNotes([]); 
+        }
+      } catch (error) {
+        console.error('Error fetching notes for chat context:', error);
+        toast({
+          title: "Error Loading Context",
+          description: "Failed to load consultation history for the chat.",
+          variant: "destructive",
+        });
+        setNotes([]); // Clear notes on error
+      } finally {
+        setIsLoadingNotes(false);
       }
     }
-  }, []);
+
+    fetchChatContextNotes();
+  }, [user, toast]);
 
   // Format consultation summaries for context
   const formatConsultationSummaries = (): string => {
+    console.log("[ChatPage] formatConsultationSummaries called. isLoadingNotes:", isLoadingNotes, "Current notes state:", notes); // LOG 4
+    if (isLoadingNotes) return "Loading consultation history..."; // Show loading message
     if (notes.length === 0) return "No medical consultations have been registered yet.";
     
     // Sort notes from newest to oldest
@@ -109,15 +151,18 @@ ${note.patientSummary}
       
       // Prepare consultation summaries
       const consultationSummaries = formatConsultationSummaries();
+      console.log('Consultation Summaries for Prompt:', consultationSummaries); // Added log here
       
       // Create the prompt for Gemini
       const prompt = `
 You are an AI medical assistant that helps a patient understand their previous medical consultations.
-Your name is MedAssist. Respond as a professional but friendly medical assistant.
+Your name is Harvey. Respond as a professional but friendly medical assistant.
+**IMPORTANT: Respond in the same language as the user's last message.**
 
 Patient Information:
+- User ID: ${user?.id || 'Not available'}
+- Name: ${userName}
 - Email: ${userEmail}
-- Patient ID: #12345
       
 Below are the records of the patient's previous medical consultations, ordered from most recent to oldest:
 

@@ -48,10 +48,11 @@ CREATE TABLE public.summaries (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     consultation_id UUID NOT NULL REFERENCES public.consultations(id) ON DELETE CASCADE,
-    type TEXT NOT NULL CHECK (type IN ('patient', 'medical', 'comprehensive', 'reminders')),
+    type TEXT NOT NULL CHECK (type IN ('patient', 'medical', 'comprehensive')),
     content TEXT NOT NULL,
     provider TEXT,
-    extracted_data JSONB
+    extracted_data JSONB,
+    extracted_reminders TEXT[]
 );
 
 -- Create appointments table

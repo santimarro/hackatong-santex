@@ -43,27 +43,15 @@ export function consultationToNote(
   const patientSummary = summaries?.find(s => s.type === 'patient');
   const medicalSummary = summaries?.find(s => s.type === 'medical');
   const comprehensiveSummary = summaries?.find(s => s.type === 'comprehensive');
-  const remindersSummary = summaries?.find(s => s.type === 'reminders');
   
   // Extract structured data from medical summary if available
   const extractedData = medicalSummary?.extracted_data as any || {};
   
-  // Parse reminders from the reminders summary content
+  // Get reminders directly from the patient summary object's 'extracted_reminders' field
+  // This field should be populated from the TEXT[] column in the database.
   let parsedReminders: string[] = [];
-  console.log('remindersSummary', summaries);
-  if (remindersSummary?.content) {
-    try {
-      console.log('remindersSummary', remindersSummary);
-      const parsed = JSON.parse(remindersSummary.content);
-      // Ensure it's actually an array of strings
-      if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
-        parsedReminders = parsed;
-      } else {
-        console.warn('Parsed reminders content is not a string array:', parsed);
-      }
-    } catch (error) {
-      console.error('Failed to parse reminders summary content:', error, 'Content:', remindersSummary.content);
-    }
+  if (patientSummary && Array.isArray(patientSummary.extracted_reminders)) {
+    parsedReminders = patientSummary.extracted_reminders;
   }
   
   return {
