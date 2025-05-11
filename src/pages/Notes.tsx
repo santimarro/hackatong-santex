@@ -2,13 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, ShieldCheck, Calendar, MapPin, ArrowRight, Stethoscope, Upload, Plus, FileText } from "lucide-react";
+import { Loader2, ShieldCheck, Calendar, MapPin, ArrowRight, Stethoscope, Upload, Plus, FileText, Trash2, LogOut, Settings, Info, LifeBuoy, Moon, Sun } from "lucide-react";
 import BottomNavigation from "@/components/BottomNavigation";
 import { useAuth } from "@/lib/auth-context";
-import { getUpcomingAppointments, getPastAppointments } from "@/lib/appointment-service";
+import { getUpcomingAppointments, getPastAppointments, createAppointment, updateAppointment, deleteAppointment } from "@/lib/appointment-service";
 import { isUserAdmin } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import AudioRecorder from '@/components/AudioRecorder';
 import AudioUploader from '@/components/AudioUploader';
 import ComprehensiveSummaryView from '@/components/ComprehensiveSummaryView';
@@ -23,11 +34,21 @@ import {
   getTranscription,
   getSummaries
 } from '@/lib/consultation-service';
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, FunctionDeclarationSchema, SchemaType, ObjectSchema } from "@google/generative-ai";
+import { Json } from "@/types/supabase";
+import { supabase } from "@/lib/supabase-client";
+import { Appointment, Consultation as ConsultationType } from "@/lib/types";
+import { Note as NoteType } from "@/types/Note";
+import { Checkbox } from "@/components/ui/checkbox";
 
-// Use Vite's environment variables
+// Use environment variables
 const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY as string;
 const deepgramApiKey = import.meta.env.VITE_DEEPGRAM_API_KEY as string;
+
+// Define API URL based on environment
+const API_URL = import.meta.env.MODE === 'development'
+  ? import.meta.env.VITE_API_URL || "http://localhost:8000"
+  : import.meta.env.VITE_API_URL || "/api";
 
 interface Appointment {
   id: string;
@@ -72,6 +93,56 @@ const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
   return result.results?.channels[0]?.alternatives[0]?.transcript || "";
 };
 
+const patientDataSchema: ObjectSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    patient_summary: {
+      type: SchemaType.STRING,
+      description: "A patient-friendly medical summary. This summary MUST ONLY include information explicitly mentioned in the transcription. Do NOT add any explanations, recommendations, or interpretations that were not provided by the doctor in the original consultation. If the doctor did not explain something in detail, reflect that lack of detail in the summary. Organize the information into clear sections if appropriate, based on the consultation content."
+    },
+    reminders: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.STRING
+      },
+      description: "A list of specific tasks, instructions, or follow-up actions for the patient. Each reminder MUST be a single, clear, and actionable item directly extracted or inferred from the transcription. If no specific actionable reminders were given or can be clearly inferred as an instruction, provide an empty array. Do not invent reminders."
+    }
+  },
+  required: ['patient_summary', 'reminders']
+};
+
+
+const summaryTemplate = `
+## Patient-Friendly Medical Summary
+
+This is a summary of your consultation about [main topic or reason for visit, e.g., your recent knee pain].
+
+### Doctor's Assessment
+- Main issue or diagnosis: [e.g., Tendinitis in the right knee]
+- Key observations: [e.g., Swelling observed, pain upon certain movements]
+- [Other relevant assessment points, if any]
+
+### Your Action Plan
+(These are the specific things you need to do)
+- Medication: [e.g., Take Ibuprofen 400mg every 8 hours with food for 5 days]
+- Tests/Exams: [e.g., Get an X-ray of your right knee]
+- Follow-up: [e.g., Schedule a follow-up appointment in 1 week]
+- Lifestyle adjustments: [e.g., Rest your knee and avoid strenuous activity for the next 3 days]
+- [Other specific instructions]
+
+### Other Important Information
+(Additional points, explanations, or advice from the doctor)
+- [e.g., The doctor explained that tendinitis is an inflammation of the tendon.]
+- [e.g., It's important to apply ice to the area for 15 minutes, 3 times a day.]
+- [e.g., We discussed that recovery might take a couple of weeks with proper care.]
+- [Any other significant information shared that isn't a direct action]
+
+### When to Seek Urgent Help
+(Only if the doctor specifically mentioned any warning signs)
+- [e.g., If the pain suddenly becomes much worse or you are unable to bear weight on your leg]
+- [e.g., If you develop a fever]
+`;
+
 const generatePatientSummary = async (text: string): Promise<{ patient_summary: string; reminders: string[] }> => {
   if (!geminiApiKey) {
     throw new Error("Gemini API key not configured in environment variables");
@@ -81,6 +152,10 @@ const generatePatientSummary = async (text: string): Promise<{ patient_summary: 
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.0-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: patientDataSchema
+      }
     });
     
     const prompt = `Create a patient-friendly medical summary based on the transcription of the medical consultation.
@@ -96,27 +171,34 @@ Your task is to:
 2. Present the summary in simple and accessible language for the patient.
 3. Extract specific tasks or instructions for the reminders list. Each reminder should be a single, clear action.
 4. Maintain absolute fidelity to the original content of the transcription for both summary and reminders.
+5. First, generate the summary using the markdown template.
+6. After the markdown summary, on a new line, provide the extracted reminders as a JavaScript-style array of strings. Each string in the array should be a single reminder. 
 
 If the doctor does not explain something in detail, DO NOT provide additional explanations.
 
 Organize the information in clear sections according to what was discussed in the consultation.
+
+Summary format template:
+\`\`\`markdown
+${summaryTemplate}
+\`\`\`
+
+extracted_reminders template: ["reminder1","reminder2"]
 
 Medical consultation transcription:
 ${text}`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const summary = response.text();
+    const jsonResponse = JSON.parse(response.text());
     
-    // Extract reminders from the summary
-    const reminders = summary
-      .split('\n')
-      .filter(line => line.trim().startsWith('-'))
-      .map(line => line.trim().substring(1).trim());
+    console.log('JSON Response from Gemini:', jsonResponse);
+    console.log('Patient Summary:', jsonResponse.patient_summary);
+    console.log('Reminders:', jsonResponse.reminders);
 
     return {
-      patient_summary: summary,
-      reminders
+      patient_summary: jsonResponse.patient_summary,
+      reminders: jsonResponse.reminders
     };
   } catch (error) {
     console.error("Error generating patient summary:", error);
@@ -177,6 +259,9 @@ const Notes: React.FC = () => {
   const [comprehensiveSummary, setComprehensiveSummary] = useState<string>("");
   const [isGeneratingSummary, setIsGeneratingSummary] = useState<boolean>(false);
   const [consultation, setConsultation] = useState<Consultation | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
+  const [selectedAppointmentIds, setSelectedAppointmentIds] = useState<string[]>([]);
 
   // Parse the consultation ID from the query string
   const queryParams = new URLSearchParams(location.search);
@@ -289,7 +374,8 @@ const Notes: React.FC = () => {
           consultation_id: consultationId,
           type: 'patient',
           content: patientSummary.patient_summary,
-          provider: 'gemini'
+          provider: 'gemini',
+          extracted_reminders: patientSummary.reminders,
         });
         
         await createSummary({
@@ -370,7 +456,8 @@ const Notes: React.FC = () => {
           consultation_id: consultationId,
           type: 'patient',
           content: patientSummary.patient_summary,
-          provider: 'gemini'
+          provider: 'gemini',
+          extracted_reminders: patientSummary.reminders,
         });
         
         await createSummary({
@@ -499,6 +586,61 @@ The response should be a single summarized, well-structured document with markdo
     }
   };
 
+  const handleAppointmentSelection = (appointmentId: string, isSelected: boolean) => {
+    setSelectedAppointmentIds(prevSelectedIds => {
+      if (isSelected) {
+        return [...prevSelectedIds, appointmentId];
+      }
+      return prevSelectedIds.filter(id => id !== appointmentId);
+    });
+  };
+
+  const confirmDeleteAppointment = async () => {
+    if (selectedAppointmentIds.length === 0 || !user) {
+      toast({ title: "No appointments selected", description: "Please select appointments to delete.", variant: "destructive" });
+      setIsDeleteDialogOpen(false);
+      return;
+    }
+
+    const appointmentsToDeleteCount = selectedAppointmentIds.length;
+    toast({ title: "Deleting...", description: `Attempting to delete ${appointmentsToDeleteCount} appointment(s)...` });
+
+    let successfulDeletes = 0;
+    let failedDeletes = 0;
+
+    for (const idToDelete of selectedAppointmentIds) {
+      try {
+        const { success, error } = await deleteAppointment(idToDelete);
+        if (success) {
+          successfulDeletes++;
+        } else {
+          failedDeletes++;
+          console.error(`Error deleting appointment ${idToDelete}:`, error);
+        }
+      } catch (err: any) {
+        failedDeletes++;
+        console.error(`Exception during deletion of appointment ${idToDelete}:`, err);
+      }
+    }
+
+    setUpcomingAppointments(prev => prev.filter(app => !selectedAppointmentIds.includes(app.id)));
+    setPastAppointments(prev => prev.filter(app => !selectedAppointmentIds.includes(app.id)));
+
+    if (failedDeletes > 0) {
+      toast({ 
+        title: "Deletion Partially Successful", 
+        description: `${successfulDeletes} appointment(s) deleted. ${failedDeletes} failed.`, 
+        variant: "default"
+      });
+    } else {
+      toast({ title: "Success", description: `${successfulDeletes} appointment(s) deleted successfully.` });
+    }
+    
+    setSelectedAppointmentIds([]);
+    setAppointmentToDelete(null);
+    setIsDeleteDialogOpen(false);
+  };
+
   // Render consultation view if consultation exists
   if (consultation && !isProcessing) {
     return (
@@ -589,15 +731,27 @@ The response should be a single summarized, well-structured document with markdo
     <div className="flex flex-col h-screen bg-white">
       <header className="border-b border-gray-200 bg-white py-4 px-6 flex justify-between items-center">
         <h1 className="text-xl font-bold text-primary">Visits</h1>
-        <Button 
-          variant="default" 
-          size="sm" 
-          onClick={() => setIsSummarySheetOpen(true)}
-          disabled={notes.length === 0}
-        >
-          <FileText className="h-4 w-4 mr-2" />
-          Summary
-        </Button>
+        <div className="flex items-center gap-2">
+          {selectedAppointmentIds.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected ({selectedAppointmentIds.length})
+            </Button>
+          )}
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={() => setIsSummarySheetOpen(true)}
+            disabled={notes.length === 0}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Summary
+          </Button>
+        </div>
       </header>
       {isProcessing ? (
           <div className="flex flex-1 items-center justify-center p-6">
@@ -620,18 +774,26 @@ The response should be a single summarized, well-structured document with markdo
               upcomingAppointments.map((appointment) => (
                 <Card 
                   key={appointment.id}
-                  className="mb-4 cursor-pointer" 
-                  onClick={() => {
-                    if (appointment.status === 'completed' && apsummariespointment.consultation_id) {
-                      navigate(`/notes/${appointment.consultation_id}`);
-                    } else {
-                      navigate(`/appointment/${appointment.id}`);
-                    }
-                  }}
+                  className="mb-4"
                 >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
-                      <div>
+                      <Checkbox 
+                        id={`select-upcoming-${appointment.id}`}
+                        className="mr-3 mt-1 self-start"
+                        checked={selectedAppointmentIds.includes(appointment.id)}
+                        onCheckedChange={(checked) => handleAppointmentSelection(appointment.id, !!checked)}
+                      />
+                      <div 
+                        className="flex-grow cursor-pointer" 
+                        onClick={() => {
+                          if (appointment.status === 'completed' && appointment.consultation_id) {
+                            navigate(`/notes/${appointment.consultation_id}`);
+                          } else {
+                            navigate(`/appointment/${appointment.id}`);
+                          }
+                        }}
+                      >
                         <h3 className="font-medium">{appointment.title}</h3>
                         <div className="flex items-center text-sm text-gray-500 mt-1">
                           <Calendar className="h-4 w-4 mr-1" />
@@ -644,7 +806,17 @@ The response should be a single summarized, well-structured document with markdo
                           </div>
                         )}
                       </div>
-                      <ArrowRight className="h-5 w-5 text-gray-400" />
+                      <ArrowRight 
+                        className="h-5 w-5 text-gray-400 cursor-pointer ml-2 self-start mt-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (appointment.status === 'completed' && appointment.consultation_id) {
+                            navigate(`/note/${appointment.consultation_id}`);
+                          } else {
+                            navigate(`/appointment/${appointment.id}`);
+                          }
+                        }}
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -671,19 +843,26 @@ The response should be a single summarized, well-structured document with markdo
               pastAppointments.map((appointment) => (
                 <Card 
                   key={appointment.id}
-                  className="mb-4 cursor-pointer" 
-                  onClick={() => {
-                    console.log('appointment', appointment);
-                    if (appointment.status === 'completed' && appointment.consultation_id) {
-                      navigate(`/note/${appointment.consultation_id}`);
-                    } else {
-                      navigate(`/appointment/${appointment.id}`);
-                    }
-                  }}
+                  className="mb-4"
                 >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
-                      <div>
+                      <Checkbox 
+                        id={`select-past-${appointment.id}`}
+                        className="mr-3 mt-1 self-start"
+                        checked={selectedAppointmentIds.includes(appointment.id)}
+                        onCheckedChange={(checked) => handleAppointmentSelection(appointment.id, !!checked)}
+                      />
+                      <div 
+                        className="flex-grow cursor-pointer" 
+                        onClick={() => {
+                          if (appointment.status === 'completed' && appointment.consultation_id) {
+                            navigate(`/note/${appointment.consultation_id}`);
+                          } else {
+                            navigate(`/appointment/${appointment.id}`);
+                          }
+                        }}
+                      >
                         <h3 className="font-medium">{appointment.title}</h3>
                         <div className="flex items-center text-sm text-gray-500 mt-1">
                           <Calendar className="h-4 w-4 mr-1" />
@@ -696,7 +875,17 @@ The response should be a single summarized, well-structured document with markdo
                           </div>
                         )}
                       </div>
-                      <ArrowRight className="h-5 w-5 text-gray-400" />
+                      <ArrowRight 
+                        className="h-5 w-5 text-gray-400 cursor-pointer ml-2 self-start mt-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (appointment.status === 'completed' && appointment.consultation_id) {
+                            navigate(`/note/${appointment.consultation_id}`);
+                          } else {
+                            navigate(`/appointment/${appointment.id}`);
+                          }
+                        }}
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -780,6 +969,29 @@ The response should be a single summarized, well-structured document with markdo
           </div>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the selected appointment(s).
+              Associated consultation data, if any, will NOT be deleted by this action.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setIsDeleteDialogOpen(false); 
+            }}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteAppointment}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BottomNavigation />
     </div>
