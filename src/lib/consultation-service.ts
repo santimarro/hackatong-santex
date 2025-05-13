@@ -81,7 +81,7 @@ async function fetchUserConsultations(userId: string): Promise<Consultation[]> {
       .select('*')
       .or(`patient_id.eq.${userId},doctor_id.eq.${userId}`)
       .order('created_at', { ascending: false })
-      .limit(1);
+      .limit(10);
 
     if (error) {
       console.error('Error fetching consultations:', error);

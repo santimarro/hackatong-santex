@@ -57,7 +57,7 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
             
           if (consultation?.audio_file_path) {
             const { data } = await supabase.storage
-              .from('audio')
+              .from('audio-files')
               .createSignedUrl(consultation.audio_file_path, 3600);
               
             if (data?.signedUrl) {
@@ -68,14 +68,14 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
             
           // If no direct path found, try listing files
           const { data: files } = await supabase.storage
-            .from('audio')
+            .from('audio-files')
             .list(`${note.id}`);
-              
+
           if (files && files.length > 0) {
             const { data } = await supabase.storage
-              .from('audio')
+              .from('audio-files')
               .createSignedUrl(`${note.id}/${files[0].name}`, 3600);
-                
+
             if (data?.signedUrl) {
               setAudioUrl(data.signedUrl);
               return;
@@ -162,6 +162,8 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
   const removeQuestion = (index: number) => {
     setQuestions(questions.filter((_, i) => i !== index));
   };
+
+  console.log("NOTE OBJ:", note);
 
   return (
     <div className="space-y-4">
@@ -453,8 +455,8 @@ const TranscriptionView: React.FC<TranscriptionViewProps> = ({ note, onUpdateNot
         <audio 
           ref={audioRef} 
           src={audioUrl} 
+          controls
           onEnded={handleAudioEnded}
-          className="hidden"
         />
       )}
     </div>

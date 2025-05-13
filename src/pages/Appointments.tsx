@@ -111,12 +111,6 @@ const AppointmentsPage = () => {
         ) : appointments.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-gray-500 mb-4">No upcoming appointments</p>
-            <Button 
-              onClick={() => navigate('/appointments/new')}
-              variant="outline"
-            >
-              Schedule your first appointment
-            </Button>
           </div>
         ) : (
           <div className="space-y-4">

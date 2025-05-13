@@ -14,6 +14,7 @@ import {
   getTranscription,
   getSummaries
 } from '@/lib/consultation-service';
+import { getProfile } from '@/lib/profile-service';
 
 // Use Vite's environment variables
 const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -30,19 +31,31 @@ const Chat = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const userEmail = user?.email || 'User';
-  const userName = user?.user_metadata?.full_name || userEmail;
+  const [userFullName, setUserFullName] = useState<string | null>(null);
   const [inputMessage, setInputMessage] = useState('');
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: `Hello ${userEmail}, how can I help you today?`,
-      sender: 'system',
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingNotes, setIsLoadingNotes] = useState(true);
   const [notes, setNotes] = useState<Note[]>([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getProfile(user.id)
+      .then(profile => setUserFullName(profile?.full_name ?? null))
+      .catch(() => setUserFullName(null));
+  }, [user]);
+
+  useEffect(() => {
+    if (!userFullName && !userEmail) return;
+    setMessages([
+      {
+        id: '1',
+        text: `Hello ${userFullName || userEmail}, how can I help you today?`,
+        sender: 'system',
+        timestamp: new Date()
+      }
+    ]);
+  }, [userFullName, userEmail]);
 
   // Load notes on component mount from Supabase
   useEffect(() => {
@@ -151,7 +164,6 @@ ${note.patientSummary}
       
       // Prepare consultation summaries
       const consultationSummaries = formatConsultationSummaries();
-      console.log('Consultation Summaries for Prompt:', consultationSummaries); // Added log here
       
       // Create the prompt for Gemini
       const prompt = `
@@ -161,7 +173,7 @@ Your name is Harvey. Respond as a professional but friendly medical assistant.
 
 Patient Information:
 - User ID: ${user?.id || 'Not available'}
-- Name: ${userName}
+- Name: ${userFullName || userEmail}
 - Email: ${userEmail}
       
 Below are the records of the patient's previous medical consultations, ordered from most recent to oldest:
@@ -232,7 +244,7 @@ Assistant:`;
 
       {/* User info */}
       <div className="border-b border-gray-200 bg-white py-3 px-6">
-        <h2 className="text-lg font-medium text-center">Welcome {userEmail}</h2>
+        <h2 className="text-lg font-medium text-center">Welcome {userFullName || userEmail}</h2>
         <p className="text-sm text-gray-500 text-center">Chat</p>
       </div>
 
