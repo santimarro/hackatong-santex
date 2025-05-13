@@ -826,14 +826,6 @@ The response should be a single summarized, well-structured document with markdo
                 You have no upcoming appointments
               </div>
             )}
-
-            <Button 
-              variant="outline" 
-              className="w-full mb-6" 
-              onClick={() => navigate('/appointments')}
-            >
-              View all upcoming appointments
-            </Button>
           </div>
 
           {/* Previous Appointments */}
@@ -895,14 +887,6 @@ The response should be a single summarized, well-structured document with markdo
                 You have no previous appointments
               </div>
             )}
-
-            <Button 
-              variant="outline" 
-              className="w-full mb-6" 
-              onClick={() => navigate('/appointments')}
-            >
-              View all previous appointments
-            </Button>
           </div>
 
           {/* Admin section - only visible to admins */}
