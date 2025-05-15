@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -19,6 +19,8 @@ export default function Auth() {
   const { signIn, signUp, loading, error, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [signupSuccess, setSignupSuccess] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Redirect if user is already authenticated
   useEffect(() => {
@@ -32,22 +34,20 @@ export default function Auth() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
-
+    setSignupSuccess(null);
     try {
       if (authMode === 'signin') {
         await signIn(email, password);
-        // The useEffect will handle redirect once user state updates
       } else {
         if (!fullName.trim()) {
           setLocalError('Please provide your full name');
           return;
         }
-        
         try {
           await signUp(email, password, fullName);
-          // The useEffect will handle redirect once user state updates
+          setSignupSuccess('A confirmation email has been sent to your address. Please check your inbox and follow the instructions to activate your account. This may take a few minutes.');
         } catch (signupError: any) {
-          throw signupError; // Re-throw for general error handling
+          throw signupError;
         }
       }
     } catch (error: any) {
@@ -58,13 +58,13 @@ export default function Auth() {
 
   // Quick debug function to check if environment variables are available
   const debugInfo = {
-    supabaseUrl: import.meta.env.VITE_SUPABASE_URL 
-      ? `${import.meta.env.VITE_SUPABASE_URL.slice(0, 12)}...` 
+    supabaseUrl: (import.meta.env as any).VITE_SUPABASE_URL 
+      ? `${(import.meta.env as any).VITE_SUPABASE_URL.slice(0, 12)}...` 
       : 'Missing',
-    supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY 
-      ? `${import.meta.env.VITE_SUPABASE_ANON_KEY.slice(0, 5)}...` 
+    supabaseKey: (import.meta.env as any).VITE_SUPABASE_ANON_KEY 
+      ? `${(import.meta.env as any).VITE_SUPABASE_ANON_KEY.slice(0, 5)}...` 
       : 'Missing',
-    mode: import.meta.env.MODE || 'Unknown'
+    mode: (import.meta.env as any).MODE || 'Unknown'
   };
 
   // If user is already authenticated, don't render the auth form
@@ -123,6 +123,13 @@ export default function Auth() {
                 </AlertDescription>
               </Alert>
             )}
+            {signupSuccess && (
+              <Alert variant="default" className="mb-4">
+                <AlertDescription>
+                  {signupSuccess}
+                </AlertDescription>
+              </Alert>
+            )}
             
             <form onSubmit={handleAuth}>
               <div className="space-y-4">
@@ -161,14 +168,25 @@ export default function Auth() {
                 
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
               </div>
               
